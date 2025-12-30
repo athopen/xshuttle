@@ -1,5 +1,6 @@
 mod app;
-mod asset;
+mod ssh;
+mod terminal;
 
 use app::App;
 use muda::MenuEvent;

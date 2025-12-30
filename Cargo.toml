@@ -8,3 +8,7 @@ tray-icon = "0.21.2"
 muda = "0.17.1"
 tao = "0.34.5"
 image = "0.25"
+
+# SSH config parsing
+ssh2-config = "0.6"
+which = "7.0"

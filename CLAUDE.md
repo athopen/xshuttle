@@ -20,11 +20,11 @@ When creating a new plan, always create a planning document in `./.claude/plans/
 
 ## Project Overview
 
-xshuttle is a cross-platform system tray application written in Rust (2024 edition).
+xshuttle is a system tray application for Linux and macOS, written in Rust (2024 edition).
 
 ## Architecture
 
 ### Crates Used
 - `tray-icon` - System tray icon (Tauri team)
-- `muda` - Cross-platform menus
-- `tao` - Event loop (handles GTK init on Linux, Win32 on Windows, NSRunLoop on macOS)
+- `muda` - Menus
+- `tao` - Event loop (handles GTK init on Linux, NSRunLoop on macOS)
