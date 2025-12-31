@@ -16,6 +16,11 @@ image = { version = "0.25", default-features = false, features = ["png"] }
 ssh2-config = "0.6"
 which = "8.0.0"
 
+# Config file
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dirs = "6.0"
+
 [profile.release]
 lto = "fat"
 codegen-units = 1

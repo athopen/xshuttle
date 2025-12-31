@@ -4,35 +4,33 @@ use image::load_from_memory;
 use muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
+use crate::config::Config;
 use crate::ssh::parse_ssh_config;
-use crate::terminal::launch_in_terminal;
+use crate::terminal::Terminal;
 
 const MENU_ID_QUIT: &str = "quit";
 const ICON_BYTES: &[u8] = include_bytes!("../assets/icon.png");
 
 #[derive(Default)]
 pub struct App {
+    config: Option<Config>,
     icon: Option<TrayIcon>,
     commands: HashMap<String, String>,
 }
 
 impl App {
     pub fn init(&mut self) {
+        self.config = Some(Config::load());
+
         let hosts = parse_ssh_config();
         let (menu, commands) = build_menu(&hosts);
         self.commands = commands;
-
-        let img = load_from_memory(ICON_BYTES)
-            .expect("Failed to load icon")
-            .into_rgba8();
-        let (width, height) = img.dimensions();
-        let icon = Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon");
 
         self.icon = Some(
             TrayIconBuilder::new()
                 .with_menu(Box::new(menu))
                 .with_tooltip("xshuttle")
-                .with_icon(icon)
+                .with_icon(load_icon())
                 .build()
                 .expect("Failed to create tray icon"),
         );
@@ -46,14 +44,28 @@ impl App {
             return true;
         }
 
-        if let Some(command) = self.commands.get(menu_id)
-            && let Err(e) = launch_in_terminal(command)
-        {
-            eprintln!("Error: {}", e);
+        if let Some(command) = self.commands.get(menu_id) {
+            let terminal = self
+                .config
+                .as_ref()
+                .map(|c| Terminal::from(c.terminal.as_str()))
+                .unwrap_or_default();
+
+            if let Err(e) = terminal.launch(command) {
+                eprintln!("Error: {}", e);
+            }
         }
 
         false
     }
+}
+
+fn load_icon() -> Icon {
+    let img = load_from_memory(ICON_BYTES)
+        .expect("Failed to load icon")
+        .into_rgba8();
+    let (width, height) = img.dimensions();
+    Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
 fn build_menu(hosts: &[String]) -> (Menu, HashMap<String, String>) {

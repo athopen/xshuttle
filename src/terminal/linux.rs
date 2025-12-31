@@ -1,92 +1,132 @@
 use std::process::Command;
 
-/// Terminal emulator with its launch arguments
-struct Terminal {
-    /// Binary name
-    bin: &'static str,
-    /// Arguments to execute a command
-    /// Use {} as placeholder for the command
-    args: &'static [&'static str],
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum Terminal {
+    #[default]
+    Auto,
+    Gnome,
+    Konsole,
+    Xfce4,
+    Alacritty,
+    Kitty,
+    Ghostty,
+    Wezterm,
+    Tilix,
+    Terminator,
+    XTerminalEmulator,
+    Xterm,
 }
 
-/// Known Linux terminal emulators in preference order
-const TERMINALS: &[Terminal] = &[
-    // Modern terminals
-    Terminal {
-        bin: "gnome-terminal",
-        args: &["--", "sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "konsole",
-        args: &["-e", "sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "xfce4-terminal",
-        args: &["-e", "sh -c '{}; exec bash'"],
-    },
-    Terminal {
-        bin: "alacritty",
-        args: &["-e", "sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "kitty",
-        args: &["sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "wezterm",
-        args: &["start", "--", "sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "tilix",
-        args: &["-e", "sh -c '{}; exec bash'"],
-    },
-    Terminal {
-        bin: "terminator",
-        args: &["-e", "sh -c '{}; exec bash'"],
-    },
-    // Fallbacks
-    Terminal {
-        bin: "x-terminal-emulator",
-        args: &["-e", "sh", "-c", "{}; exec bash"],
-    },
-    Terminal {
-        bin: "xterm",
-        args: &["-e", "sh", "-c", "{}; exec bash"],
-    },
-];
-
-/// Detect available terminal emulator
-fn detect_terminal() -> Option<&'static Terminal> {
-    // Check $TERMINAL environment variable first
-    if let Ok(term_env) = std::env::var("TERMINAL") {
-        for terminal in TERMINALS {
-            if term_env.contains(terminal.bin) && which::which(terminal.bin).is_ok() {
-                return Some(terminal);
-            }
+impl Terminal {
+    fn bin(&self) -> Option<&'static str> {
+        match self {
+            Self::Auto => None,
+            Self::Gnome => Some("gnome-terminal"),
+            Self::Konsole => Some("konsole"),
+            Self::Xfce4 => Some("xfce4-terminal"),
+            Self::Alacritty => Some("alacritty"),
+            Self::Kitty => Some("kitty"),
+            Self::Ghostty => Some("ghostty"),
+            Self::Wezterm => Some("wezterm"),
+            Self::Tilix => Some("tilix"),
+            Self::Terminator => Some("terminator"),
+            Self::XTerminalEmulator => Some("x-terminal-emulator"),
+            Self::Xterm => Some("xterm"),
         }
     }
 
-    // Fall back to checking known terminals
-    TERMINALS.iter().find(|t| which::which(t.bin).is_ok())
+    fn args(&self) -> &'static [&'static str] {
+        match self {
+            Self::Auto => &[],
+            Self::Gnome => &["--", "sh", "-c", "{}; exec bash"],
+            Self::Konsole => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Xfce4 => &["-e", "sh -c '{}; exec bash'"],
+            Self::Alacritty => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Kitty => &["sh", "-c", "{}; exec bash"],
+            Self::Ghostty => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Wezterm => &["start", "--", "sh", "-c", "{}; exec bash"],
+            Self::Tilix => &["-e", "sh -c '{}; exec bash'"],
+            Self::Terminator => &["-e", "sh -c '{}; exec bash'"],
+            Self::XTerminalEmulator => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Xterm => &["-e", "sh", "-c", "{}; exec bash"],
+        }
+    }
+
+    fn is_available(&self) -> bool {
+        self.bin().is_some_and(|bin| which::which(bin).is_ok())
+    }
+
+    fn all() -> &'static [Terminal] {
+        &[
+            Self::Gnome,
+            Self::Konsole,
+            Self::Xfce4,
+            Self::Alacritty,
+            Self::Kitty,
+            Self::Ghostty,
+            Self::Wezterm,
+            Self::Tilix,
+            Self::Terminator,
+            Self::XTerminalEmulator,
+            Self::Xterm,
+        ]
+    }
+
+    fn detect(&self) -> Option<Terminal> {
+        // Prefer requested terminal if available
+        if *self != Self::Auto && self.is_available() {
+            return Some(*self);
+        }
+
+        // Check $TERMINAL env var
+        if let Ok(term_env) = std::env::var("TERMINAL") {
+            for &t in Self::all() {
+                if t.bin().is_some_and(|b| term_env.contains(b)) && t.is_available() {
+                    return Some(t);
+                }
+            }
+        }
+
+        // First available
+        Self::all().iter().copied().find(|t| t.is_available())
+    }
+
+    pub fn launch(&self, command: &str) -> Result<(), String> {
+        let terminal = self
+            .detect()
+            .ok_or("No terminal found. Install gnome-terminal, konsole, alacritty, or xterm.")?;
+
+        let bin = terminal.bin().expect("detect() never returns Auto");
+        let args: Vec<String> = terminal
+            .args()
+            .iter()
+            .map(|a| a.replace("{}", command))
+            .collect();
+
+        Command::new(bin)
+            .args(&args)
+            .spawn()
+            .map_err(|e| format!("Failed to launch {}: {}", bin, e))?;
+
+        Ok(())
+    }
 }
 
-/// Launch a command in the system's terminal emulator
-pub fn launch_in_terminal(command: &str) -> Result<(), String> {
-    let terminal = detect_terminal().ok_or_else(|| {
-        "No terminal emulator found. Install gnome-terminal, konsole, alacritty, or xterm."
-            .to_string()
-    })?;
-
-    let args: Vec<String> = terminal
-        .args
-        .iter()
-        .map(|arg| arg.replace("{}", command))
-        .collect();
-
-    Command::new(terminal.bin)
-        .args(&args)
-        .spawn()
-        .map_err(|e| format!("Failed to launch {}: {}", terminal.bin, e))?;
-
-    Ok(())
+impl From<&str> for Terminal {
+    fn from(s: &str) -> Self {
+        match s.to_lowercase().as_str() {
+            "gnome-terminal" => Self::Gnome,
+            "konsole" => Self::Konsole,
+            "xfce4-terminal" => Self::Xfce4,
+            "alacritty" => Self::Alacritty,
+            "kitty" => Self::Kitty,
+            "ghostty" => Self::Ghostty,
+            "wezterm" => Self::Wezterm,
+            "tilix" => Self::Tilix,
+            "terminator" => Self::Terminator,
+            "x-terminal-emulator" => Self::XTerminalEmulator,
+            "xterm" => Self::Xterm,
+            _ => Self::Auto,
+        }
+    }
 }

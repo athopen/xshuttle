@@ -4,6 +4,6 @@ mod linux;
 mod macos;
 
 #[cfg(target_os = "linux")]
-pub use linux::launch_in_terminal;
+pub use linux::Terminal;
 #[cfg(target_os = "macos")]
-pub use macos::launch_in_terminal;
+pub use macos::Terminal;
