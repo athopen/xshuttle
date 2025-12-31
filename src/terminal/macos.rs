@@ -4,6 +4,7 @@ use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)]
 pub enum Terminal {
     #[default]
     Auto,
@@ -36,7 +37,7 @@ impl Terminal {
     }
 
     fn is_available(&self) -> bool {
-        self.app().is_some_and(|app| is_app_installed(app))
+        self.app().is_some_and(is_app_installed)
     }
 
     fn all() -> &'static [Terminal] {
