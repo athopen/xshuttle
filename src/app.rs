@@ -4,7 +4,7 @@ use image::load_from_memory;
 use muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
-use crate::config::Config;
+use crate::config::{Action, Config};
 use crate::ssh::parse_ssh_config;
 use crate::terminal::Terminal;
 
@@ -17,7 +17,7 @@ const ICON_BYTES: &[u8] = include_bytes!("../assets/icon.png");
 pub struct App {
     config: Option<Config>,
     icon: Option<TrayIcon>,
-    commands: HashMap<String, String>,
+    menu_id_map: HashMap<String, String>,
 }
 
 impl App {
@@ -25,11 +25,12 @@ impl App {
         if let Err(e) = Config::ensure_config_exists() {
             eprintln!("Warning: Could not ensure config exists: {}", e);
         }
-        self.config = Some(Config::load());
+        let config = Config::load();
 
         let hosts = parse_ssh_config();
-        let (menu, commands) = build_menu(&hosts);
-        self.commands = commands;
+        let (menu, actions) = build_menu(&config.actions, &hosts);
+        self.menu_id_map = actions;
+        self.config = Some(config);
 
         self.icon = Some(
             TrayIconBuilder::new()
@@ -59,7 +60,7 @@ impl App {
             return false;
         }
 
-        if let Some(command) = self.commands.get(menu_id) {
+        if let Some(command) = self.menu_id_map.get(menu_id) {
             let terminal = self
                 .config
                 .as_ref()
@@ -106,11 +107,12 @@ impl App {
     }
 
     fn reload(&mut self) {
-        self.config = Some(Config::load());
+        let config = Config::load();
 
         let hosts = parse_ssh_config();
-        let (menu, commands) = build_menu(&hosts);
-        self.commands = commands;
+        let (menu, menu_id_map) = build_menu(&config.actions, &hosts);
+        self.menu_id_map = menu_id_map;
+        self.config = Some(config);
 
         if let Some(icon) = &self.icon {
             icon.set_menu(Some(Box::new(menu)));
@@ -126,13 +128,24 @@ fn load_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
-fn build_menu(hosts: &[String]) -> (Menu, HashMap<String, String>) {
+fn build_menu(actions: &[Action], hosts: &[String]) -> (Menu, HashMap<String, String>) {
     let menu = Menu::new();
-    let mut commands = HashMap::new();
+    let mut menu_id_map = HashMap::new();
+
+    for (index, action) in actions.iter().enumerate() {
+        let menu_id = format!("action_{}", index);
+        menu_id_map.insert(menu_id.clone(), action.cmd.clone());
+        let item = MenuItem::with_id(menu_id, &action.name, true, None);
+        menu.append(&item).expect("Failed to append menu item");
+    }
+
+    if !actions.is_empty() && !hosts.is_empty() {
+        menu.append(&PredefinedMenuItem::separator()).unwrap();
+    }
 
     for (index, host) in hosts.iter().enumerate() {
         let menu_id = format!("ssh_{}", index);
-        commands.insert(menu_id.clone(), format!("ssh {}", host));
+        menu_id_map.insert(menu_id.clone(), format!("ssh {}", host));
         let item = MenuItem::with_id(menu_id, host, true, None);
         menu.append(&item).expect("Failed to append menu item");
     }
@@ -153,7 +166,7 @@ fn build_menu(hosts: &[String]) -> (Menu, HashMap<String, String>) {
     menu.append(&MenuItem::with_id(MENU_ID_QUIT, "Quit", true, None))
         .unwrap();
 
-    (menu, commands)
+    (menu, menu_id_map)
 }
 
 fn is_terminal_editor(editor: &str) -> bool {

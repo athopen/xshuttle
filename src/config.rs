@@ -5,6 +5,12 @@ use std::path::{Path, PathBuf};
 
 const DEFAULT_CONFIG: &str = include_str!("../assets/default.json");
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct Action {
+    pub name: String,
+    pub cmd: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     #[serde(default = "default_terminal")]
@@ -12,6 +18,9 @@ pub struct Config {
 
     #[serde(default = "default_editor")]
     pub editor: String,
+
+    #[serde(default)]
+    pub actions: Vec<Action>,
 }
 
 fn default_terminal() -> String {
@@ -27,6 +36,7 @@ impl Default for Config {
         Self {
             terminal: default_terminal(),
             editor: default_editor(),
+            actions: Vec::new(),
         }
     }
 }

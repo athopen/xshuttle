@@ -1,4 +1,5 @@
 {
   "terminal": "default",
-  "editor": "default"
+  "editor": "default",
+  "actions": []
 }
