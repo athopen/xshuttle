@@ -1,6 +1,9 @@
 use serde::Deserialize;
 use std::fs;
+use std::io;
 use std::path::{Path, PathBuf};
+
+const DEFAULT_CONFIG: &str = include_str!("../assets/default.json");
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
@@ -24,6 +27,24 @@ impl Config {
     /// Returns the default config file path (~/.xshuttle.json)
     pub fn config_path() -> Option<PathBuf> {
         dirs::home_dir().map(|home| home.join(".xshuttle.json"))
+    }
+
+    /// Ensures the config file exists, creating a default one if missing.
+    /// Returns the path to the config file.
+    pub fn ensure_config_exists() -> io::Result<PathBuf> {
+        let path = Self::config_path().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                "Could not determine home directory",
+            )
+        })?;
+
+        if !path.exists() {
+            fs::write(&path, DEFAULT_CONFIG)?;
+            eprintln!("Created default config at {}", path.display());
+        }
+
+        Ok(path)
     }
 
     /// Load config from a string (useful for testing)

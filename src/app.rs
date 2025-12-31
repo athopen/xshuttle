@@ -20,6 +20,9 @@ pub struct App {
 
 impl App {
     pub fn init(&mut self) {
+        if let Err(e) = Config::ensure_config_exists() {
+            eprintln!("Warning: Could not ensure config exists: {}", e);
+        }
         self.config = Some(Config::load());
 
         let hosts = parse_ssh_config();
