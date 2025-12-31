@@ -7,7 +7,7 @@ use std::process::Command;
 #[allow(clippy::enum_variant_names)]
 pub enum Terminal {
     #[default]
-    Auto,
+    Default,
     ITerm,
     Terminal,
     Warp,
@@ -19,7 +19,7 @@ pub enum Terminal {
 impl Terminal {
     fn app(&self) -> Option<&'static str> {
         match self {
-            Self::Auto => None,
+            Self::Default => None,
             Self::ITerm => Some("iTerm"),
             Self::Terminal => Some("Terminal"),
             Self::Warp => Some("Warp"),
@@ -53,7 +53,7 @@ impl Terminal {
 
     fn detect(&self) -> Option<Terminal> {
         // Prefer requested terminal if available
-        if *self != Self::Auto && self.is_available() {
+        if *self != Self::Default && self.is_available() {
             return Some(*self);
         }
 
@@ -66,7 +66,7 @@ impl Terminal {
             .detect()
             .ok_or("No terminal found. Install Terminal.app, iTerm, or Warp.")?;
 
-        let app = terminal.app().expect("detect() never returns Auto");
+        let app = terminal.app().expect("detect() never returns Default");
         let script_path = create_script(command)?;
 
         match terminal.custom_launch() {
@@ -100,7 +100,7 @@ impl From<&str> for Terminal {
             "kitty" => Self::Kitty,
             "ghostty" => Self::Ghostty,
             "wezterm" => Self::Wezterm,
-            _ => Self::Auto,
+            _ => Self::Default,
         }
     }
 }

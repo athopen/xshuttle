@@ -3,7 +3,7 @@ use std::process::Command;
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Terminal {
     #[default]
-    Auto,
+    Default,
     Gnome,
     Konsole,
     Xfce4,
@@ -20,7 +20,7 @@ pub enum Terminal {
 impl Terminal {
     fn bin(&self) -> Option<&'static str> {
         match self {
-            Self::Auto => None,
+            Self::Default => None,
             Self::Gnome => Some("gnome-terminal"),
             Self::Konsole => Some("konsole"),
             Self::Xfce4 => Some("xfce4-terminal"),
@@ -37,7 +37,7 @@ impl Terminal {
 
     fn args(&self) -> &'static [&'static str] {
         match self {
-            Self::Auto => &[],
+            Self::Default => &[],
             Self::Gnome => &["--", "sh", "-c", "{}; exec bash"],
             Self::Konsole => &["-e", "sh", "-c", "{}; exec bash"],
             Self::Xfce4 => &["-e", "sh -c '{}; exec bash'"],
@@ -74,7 +74,7 @@ impl Terminal {
 
     fn detect(&self) -> Option<Terminal> {
         // Prefer requested terminal if available
-        if *self != Self::Auto && self.is_available() {
+        if *self != Self::Default && self.is_available() {
             return Some(*self);
         }
 
@@ -96,7 +96,7 @@ impl Terminal {
             .detect()
             .ok_or("No terminal found. Install gnome-terminal, konsole, alacritty, or xterm.")?;
 
-        let bin = terminal.bin().expect("detect() never returns Auto");
+        let bin = terminal.bin().expect("detect() never returns Default");
         let args: Vec<String> = terminal
             .args()
             .iter()
@@ -126,7 +126,7 @@ impl From<&str> for Terminal {
             "terminator" => Self::Terminator,
             "x-terminal-emulator" => Self::XTerminalEmulator,
             "xterm" => Self::Xterm,
-            _ => Self::Auto,
+            _ => Self::Default,
         }
     }
 }

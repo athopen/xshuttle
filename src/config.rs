@@ -9,16 +9,24 @@ const DEFAULT_CONFIG: &str = include_str!("../assets/default.json");
 pub struct Config {
     #[serde(default = "default_terminal")]
     pub terminal: String,
+
+    #[serde(default = "default_editor")]
+    pub editor: String,
 }
 
 fn default_terminal() -> String {
-    "auto".to_string()
+    "default".to_string()
+}
+
+fn default_editor() -> String {
+    "default".to_string()
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             terminal: default_terminal(),
+            editor: default_editor(),
         }
     }
 }
@@ -86,13 +94,13 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = Config::default();
-        assert_eq!(config.terminal, "auto");
+        assert_eq!(config.terminal, "default");
     }
 
     #[test]
     fn test_load_from_str_empty() {
         let config = Config::load_from_str("{}");
-        assert_eq!(config.terminal, "auto");
+        assert_eq!(config.terminal, "default");
     }
 
     #[test]
@@ -110,12 +118,12 @@ mod tests {
     #[test]
     fn test_load_from_str_invalid_json_returns_default() {
         let config = Config::load_from_str("not valid json");
-        assert_eq!(config.terminal, "auto");
+        assert_eq!(config.terminal, "default");
     }
 
     #[test]
     fn test_load_from_path_missing_file_returns_default() {
         let config = Config::load_from_path(Path::new("/nonexistent/path/config.json"));
-        assert_eq!(config.terminal, "auto");
+        assert_eq!(config.terminal, "default");
     }
 }

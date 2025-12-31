@@ -1,3 +1,4 @@
 {
-  "terminal": "auto"
+  "terminal": "default",
+  "editor": "default"
 }
