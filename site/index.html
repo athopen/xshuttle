@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>xshuttle</title>
+    <meta name="description" content="Every command at your fingertips. A lightweight system tray app for Linux and macOS.">
+    <meta property="og:title" content="xshuttle">
+    <meta property="og:description" content="Every command at your fingertips. A lightweight system tray app for Linux and macOS.">
+    <meta property="og:image" content="https://athopen.github.io/xshuttle/assets/icon.svg">
+    <meta property="og:url" content="https://athopen.github.io/xshuttle">
+    <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="src/style.css">
+</head>
+<body class="min-h-screen antialiased">
+<main>
+    <!-- Hero -->
+    <section class="pt-20 pb-20 px-6">
+        <div class="max-w-3xl mx-auto text-center">
+            <div class="mb-8">
+                <img src="/assets/icon.svg" alt="" class="w-20 h-20 mx-auto">
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold tracking-tight mb-4">
+                Every command at your fingertips.
+            </h1>
+            <p class="text-lg text-fg-muted mb-10 max-w-xl mx-auto">
+                A lightweight system tray app that gives you one-click access to your favorite commands.
+            </p>
+            <div class="flex flex-col items-center gap-4">
+                <a href="#install"
+                   class="inline-flex items-center gap-2 px-6 py-3 bg-transparent text-white font-medium border border-white rounded-lg hover:bg-white hover:text-black transition-colors">
+                    Install
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Divider -->
+    <div class="gradient-line max-w-3xl mx-auto"></div>
+
+    <!-- Features -->
+    <section class="py-20 px-6">
+        <div class="max-w-3xl mx-auto">
+            <div class="grid md:grid-cols-3 gap-8 text-center">
+                <div>
+                    <h3 class="font-semibold mb-2">Auto-discovery</h3>
+                    <p class="text-sm text-fg-muted">Reads your <code class="text-fg-subtle bg-bg-card px-1.5 py-0.5 rounded text-xs">~/.ssh/config</code>
+                        automatically</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">One-click connect</h3>
+                    <p class="text-sm text-fg-muted">Opens SSH sessions in your terminal</p>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">Custom actions</h3>
+                    <p class="text-sm text-fg-muted">Add commands with nested submenus</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Install -->
+    <section id="install" class="py-20 px-6 bg-bg-subtle">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-2xl font-bold text-center mb-8">Install</h2>
+
+            <div class="code-block mb-8">
+                <code class="text-fg-muted text-xs">$ curl -fsSL https://raw.githubusercontent.com/athopen/xshuttle/master/scripts/install.sh | bash</code>
+            </div>
+
+            <div class="grid grid-cols-3 gap-4 text-center text-sm">
+                <a href="https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-unknown-linux-gnu.tar.gz"
+                   class="p-4 border border-border rounded-lg hover:border-border-hover transition-colors group">
+                    <div class="font-medium mb-1 group-hover:text-fg">Linux x86_64</div>
+                    <div class="text-fg-subtle">.tar.gz</div>
+                </a>
+                <a href="https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-aarch64-apple-darwin.tar.gz"
+                   class="p-4 border border-border rounded-lg hover:border-border-hover transition-colors group">
+                    <div class="font-medium mb-1 group-hover:text-fg">macOS ARM</div>
+                    <div class="text-fg-subtle">.tar.gz</div>
+                </a>
+                <a href="https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-apple-darwin.tar.gz"
+                   class="p-4 border border-border rounded-lg hover:border-border-hover transition-colors group">
+                    <div class="font-medium mb-1 group-hover:text-fg">macOS Intel</div>
+                    <div class="text-fg-subtle">.tar.gz</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Config -->
+    <section class="py-20 px-6">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-2xl font-bold text-center mb-2">Configuration</h2>
+            <p class="text-fg-muted text-center mb-8">
+                <code class="text-fg-subtle bg-bg-card px-1.5 py-0.5 rounded text-xs">~/.xshuttle.json</code>
+            </p>
+
+            <div class="code-block">
+          <pre class="text-fg-muted"><span class="text-fg-subtle">{</span>
+  <span class="text-accent-1">"terminal"</span>: <span class="text-fg">"ghostty"</span>,
+  <span class="text-accent-1">"editor"</span>: <span class="text-fg">"vim"</span>,
+  <span class="text-accent-1">"actions"</span>: <span class="text-fg-subtle">[</span>
+    <span class="text-fg-subtle">{</span> <span class="text-accent-1">"name"</span>: <span class="text-fg">"Example"</span>, <span
+                      class="text-accent-1">"cmd"</span>: <span class="text-fg">"ssh user@example.com"</span> <span class="text-fg-subtle">}</span>
+  <span class="text-fg-subtle">]</span>
+<span class="text-fg-subtle">}</span></pre>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Footer -->
+<footer class="py-8 px-6">
+    <div class="max-w-3xl mx-auto flex items-center justify-between text-sm text-fg-subtle">
+        <div class="flex items-center gap-6">
+            <a href="https://github.com/athopen" class="hover:text-fg transition-colors">&copy; Andreas Penz</a>
+        </div>
+        <div class="flex items-center gap-6">
+            <a href="https://github.com/athopen/xshuttle" class="hover:text-fg transition-colors">GitHub</a>
+            <a href="https://github.com/athopen/xshuttle/blob/master/LICENSE.md" class="hover:text-fg transition-colors">License</a>
+        </div>
+    </div>
+</footer>
+</body>
+</html>

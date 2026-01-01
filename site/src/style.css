@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #000000;
+  --color-bg-subtle: #0a0a0a;
+  --color-bg-card: #111111;
+  --color-fg: #ffffff;
+  --color-fg-muted: #888888;
+  --color-fg-subtle: #666666;
+  --color-border: #222222;
+  --color-border-hover: #333333;
+  --color-accent-1: #10b981;
+  --color-accent-2: #3b82f6;
+  --font-family-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'Geist Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-family-sans);
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  ::selection {
+    background: var(--color-accent-1);
+    color: var(--color-bg);
+  }
+}
+
+@layer components {
+  .code-block {
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem 1.25rem;
+    font-family: var(--font-family-mono);
+    font-size: 0.875rem;
+    overflow-x: auto;
+  }
+
+  .gradient-line {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-accent-1), var(--color-accent-2), transparent);
+  }
+}
