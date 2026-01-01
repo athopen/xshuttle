@@ -24,22 +24,25 @@ A system tray application that displays your SSH hosts from `~/.ssh/config` for 
 ### Quick Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/athopen/xshuttle/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/athopen/xshuttle/master/scripts/install.sh | bash
 ```
 
 ### Manual Install
 
-Download the latest release for your platform from [Releases](https://github.com/athopen/xshuttle/releases) and extract to `/usr/local/bin`:
+Download the latest release for your platform from [Releases](https://github.com/athopen/xshuttle/releases):
 
 ```bash
 # Linux (x86_64)
-curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-unknown-linux-gnu.tar.gz | sudo tar xz -C /usr/local/bin
+curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-unknown-linux-gnu.tar.gz | tar xz
+sudo cp xshuttle-x86_64-unknown-linux-gnu/xshuttle /usr/local/bin/
 
 # macOS (Intel)
-curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-apple-darwin.tar.gz | sudo tar xz -C /usr/local/bin
+curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-x86_64-apple-darwin.tar.gz | tar xz
+sudo cp xshuttle-x86_64-apple-darwin/xshuttle /usr/local/bin/
 
 # macOS (Apple Silicon)
-curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-aarch64-apple-darwin.tar.gz | sudo tar xz -C /usr/local/bin
+curl -fsSL https://github.com/athopen/xshuttle/releases/latest/download/xshuttle-aarch64-apple-darwin.tar.gz | tar xz
+sudo cp xshuttle-aarch64-apple-darwin/xshuttle /usr/local/bin/
 ```
 
 ### Build from Source
