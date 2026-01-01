@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=xshuttle
+Comment=Command Manager for the Linux system tray
+Exec=xshuttle
+Icon=xshuttle
+Terminal=false
+X-GNOME-Autostart-enabled=true
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-Delay=5
+X-MATE-Autostart-Delay=5
+X-KDE-autostart-after=panel

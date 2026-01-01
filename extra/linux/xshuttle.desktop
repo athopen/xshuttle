@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=xshuttle
+GenericName=XShuttle Command Manager
+Comment=Command Manager for the Linux system tray
+Exec=xshuttle
+Icon=xshuttle
+Terminal=false
+Categories=Network;Utility;
+Keywords=ssh;menu;tray;shortcut;
+StartupNotify=false
