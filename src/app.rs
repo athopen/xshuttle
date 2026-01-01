@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use image::load_from_memory;
-use muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem};
+use muda::{Menu, MenuEvent, MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
-use crate::config::{Action, Config};
+use crate::config::{Config, Entry};
 use crate::ssh::parse_ssh_config;
 use crate::terminal::Terminal;
 
@@ -128,16 +128,12 @@ fn load_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
-fn build_menu(actions: &[Action], hosts: &[String]) -> (Menu, HashMap<String, String>) {
+fn build_menu(actions: &[Entry], hosts: &[String]) -> (Menu, HashMap<String, String>) {
     let menu = Menu::new();
     let mut menu_id_map = HashMap::new();
+    let mut id_counter = 0usize;
 
-    for (index, action) in actions.iter().enumerate() {
-        let menu_id = format!("action_{}", index);
-        menu_id_map.insert(menu_id.clone(), action.cmd.clone());
-        let item = MenuItem::with_id(menu_id, &action.name, true, None);
-        menu.append(&item).expect("Failed to append menu item");
-    }
+    build_entries(&menu, actions, &mut menu_id_map, &mut id_counter);
 
     if !actions.is_empty() && !hosts.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
@@ -167,6 +163,58 @@ fn build_menu(actions: &[Action], hosts: &[String]) -> (Menu, HashMap<String, St
         .unwrap();
 
     (menu, menu_id_map)
+}
+
+fn build_entries(
+    menu: &Menu,
+    entries: &[Entry],
+    menu_id_map: &mut HashMap<String, String>,
+    id_counter: &mut usize,
+) {
+    for entry in entries {
+        match entry {
+            Entry::Action(action) => {
+                let menu_id = format!("action_{}", *id_counter);
+                *id_counter += 1;
+                menu_id_map.insert(menu_id.clone(), action.cmd.clone());
+                let item = MenuItem::with_id(menu_id, &action.name, true, None);
+                menu.append(&item).expect("Failed to append menu item");
+            }
+            Entry::Submenu(submenus) => {
+                for (name, children) in submenus {
+                    let submenu = Submenu::new(name, true);
+                    build_submenu_entries(&submenu, children, menu_id_map, id_counter);
+                    menu.append(&submenu).expect("Failed to append submenu");
+                }
+            }
+        }
+    }
+}
+
+fn build_submenu_entries(
+    submenu: &Submenu,
+    entries: &[Entry],
+    menu_id_map: &mut HashMap<String, String>,
+    id_counter: &mut usize,
+) {
+    for entry in entries {
+        match entry {
+            Entry::Action(action) => {
+                let menu_id = format!("action_{}", *id_counter);
+                *id_counter += 1;
+                menu_id_map.insert(menu_id.clone(), action.cmd.clone());
+                let item = MenuItem::with_id(menu_id, &action.name, true, None);
+                submenu.append(&item).expect("Failed to append menu item");
+            }
+            Entry::Submenu(submenus) => {
+                for (name, children) in submenus {
+                    let nested = Submenu::new(name, true);
+                    build_submenu_entries(&nested, children, menu_id_map, id_counter);
+                    submenu.append(&nested).expect("Failed to append submenu");
+                }
+            }
+        }
+    }
 }
 
 fn is_terminal_editor(editor: &str) -> bool {

@@ -1,4 +1,5 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -11,6 +12,13 @@ pub struct Action {
     pub cmd: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum Entry {
+    Action(Action),
+    Submenu(HashMap<String, Vec<Entry>>),
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Config {
     #[serde(default = "default_terminal")]
@@ -20,7 +28,7 @@ pub struct Config {
     pub editor: String,
 
     #[serde(default)]
-    pub actions: Vec<Action>,
+    pub actions: Vec<Entry>,
 }
 
 fn default_terminal() -> String {
@@ -135,5 +143,71 @@ mod tests {
     fn test_load_from_path_missing_file_returns_default() {
         let config = Config::load_from_path(Path::new("/nonexistent/path/config.json"));
         assert_eq!(config.terminal, "default");
+    }
+
+    #[test]
+    fn test_flat_actions() {
+        let config =
+            Config::load_from_str(r#"{"actions": [{"name": "Test", "cmd": "echo hello"}]}"#);
+        assert_eq!(config.actions.len(), 1);
+        match &config.actions[0] {
+            Entry::Action(a) => {
+                assert_eq!(a.name, "Test");
+                assert_eq!(a.cmd, "echo hello");
+            }
+            _ => panic!("Expected Action"),
+        }
+    }
+
+    #[test]
+    fn test_nested_actions() {
+        let config = Config::load_from_str(
+            r#"{
+                "actions": [
+                    {"name": "Top Level", "cmd": "echo top"},
+                    {"Production": [
+                        {"name": "Server 1", "cmd": "ssh server1"}
+                    ]}
+                ]
+            }"#,
+        );
+        assert_eq!(config.actions.len(), 2);
+        match &config.actions[0] {
+            Entry::Action(a) => assert_eq!(a.name, "Top Level"),
+            _ => panic!("Expected Action"),
+        }
+        match &config.actions[1] {
+            Entry::Submenu(map) => {
+                assert!(map.contains_key("Production"));
+                assert_eq!(map["Production"].len(), 1);
+            }
+            _ => panic!("Expected Submenu"),
+        }
+    }
+
+    #[test]
+    fn test_deeply_nested_actions() {
+        let config = Config::load_from_str(
+            r#"{
+                "actions": [
+                    {"Level1": [
+                        {"Level2": [
+                            {"name": "Deep", "cmd": "echo deep"}
+                        ]}
+                    ]}
+                ]
+            }"#,
+        );
+        assert_eq!(config.actions.len(), 1);
+        match &config.actions[0] {
+            Entry::Submenu(l1) => match &l1["Level1"][0] {
+                Entry::Submenu(l2) => match &l2["Level2"][0] {
+                    Entry::Action(a) => assert_eq!(a.name, "Deep"),
+                    _ => panic!("Expected Action at level 3"),
+                },
+                _ => panic!("Expected Submenu at level 2"),
+            },
+            _ => panic!("Expected Submenu at level 1"),
+        }
     }
 }
