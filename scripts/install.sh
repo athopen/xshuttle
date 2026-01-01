@@ -5,6 +5,7 @@ set -euo pipefail
 REPO="athopen/xshuttle"
 APP_NAME="xshuttle"
 PLIST_LABEL="com.athopen.xshuttle"
+CLEANUP_DIR=""
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -12,9 +13,17 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-info() { echo -e "${BLUE}$1${NC}"; }
-success() { echo -e "${GREEN}✓ $1${NC}"; }
-error() { echo -e "${RED}✗ $1${NC}" >&2; }
+info() { echo -e "${BLUE}$1${NC}" >&2; }
+success() { echo -e "${GREEN}✓ $1${NC}" >&2; }
+error() { echo -e "${RED}error: $1${NC}" >&2; }
+
+# --- Cleanup ---
+cleanup() {
+    if [[ -n "$CLEANUP_DIR" && -d "$CLEANUP_DIR" ]]; then
+        rm -rf "$CLEANUP_DIR"
+    fi
+}
+trap cleanup EXIT
 
 # --- Platform Detection ---
 detect_platform() {
@@ -36,7 +45,7 @@ detect_platform() {
 download_release() {
     local version
     local url
-    local tmpdir
+    local archive
 
     info "Fetching latest version..."
     version=$(curl -fsSL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
@@ -46,58 +55,82 @@ download_release() {
         exit 1
     fi
 
-    info "Installing xshuttle $version for $TARGET..."
+    info "Downloading xshuttle $version for $TARGET..."
 
+    CLEANUP_DIR=$(mktemp -d)
+    archive="$CLEANUP_DIR/$APP_NAME-$TARGET.tar.gz"
     url="https://github.com/$REPO/releases/download/$version/$APP_NAME-$TARGET.tar.gz"
-    tmpdir=$(mktemp -d)
-    trap 'rm -rf "$tmpdir"' EXIT
 
-    curl -fsSL "$url" | tar xz -C "$tmpdir"
+    # Download to file (not pipe) for better error handling
+    if ! curl -fsSL "$url" -o "$archive"; then
+        error "Failed to download from $url"
+        exit 1
+    fi
 
-    echo "$tmpdir"
+    # Verify download succeeded
+    if [[ ! -s "$archive" ]]; then
+        error "Downloaded file is empty or missing"
+        exit 1
+    fi
+
+    # Extract
+    if ! tar xzf "$archive" -C "$CLEANUP_DIR"; then
+        error "Failed to extract archive"
+        exit 1
+    fi
+
+    # Verify binary exists
+    local extract_dir="$CLEANUP_DIR/$APP_NAME-$TARGET"
+    if [[ ! -f "$extract_dir/$APP_NAME" ]]; then
+        error "Binary not found in archive (expected $extract_dir/$APP_NAME)"
+        exit 1
+    fi
+
+    echo "$extract_dir"
 }
 
 # --- Installation Functions ---
 install_binary() {
-    local tmpdir="$1"
+    local srcdir="$1"
+    local binary="$srcdir/$APP_NAME"
 
     sudo mkdir -p /usr/local/bin
-    sudo cp "$tmpdir/$APP_NAME" /usr/local/bin/
+    sudo cp "$binary" /usr/local/bin/
     sudo chmod +x "/usr/local/bin/$APP_NAME"
 
     success "Installed binary to /usr/local/bin/$APP_NAME"
 }
 
 install_desktop_linux() {
-    local tmpdir="$1"
+    local srcdir="$1"
 
     # Desktop entry
-    if [[ -f "$tmpdir/xshuttle.desktop" ]]; then
+    if [[ -f "$srcdir/xshuttle.desktop" ]]; then
         sudo mkdir -p /usr/share/applications
-        sudo cp "$tmpdir/xshuttle.desktop" /usr/share/applications/
+        sudo cp "$srcdir/xshuttle.desktop" /usr/share/applications/
         success "Installed desktop entry"
     fi
 
     # Icons (hicolor theme)
-    if [[ -d "$tmpdir/icons" ]]; then
+    if [[ -d "$srcdir/icons" ]]; then
         local sizes="16 32 48 64 128 256 512 1024"
         for size in $sizes; do
-            if [[ -f "$tmpdir/icons/xshuttle-${size}.png" ]]; then
+            if [[ -f "$srcdir/icons/xshuttle-${size}.png" ]]; then
                 sudo mkdir -p "/usr/share/icons/hicolor/${size}x${size}/apps"
-                sudo cp "$tmpdir/icons/xshuttle-${size}.png" "/usr/share/icons/hicolor/${size}x${size}/apps/xshuttle.png"
+                sudo cp "$srcdir/icons/xshuttle-${size}.png" "/usr/share/icons/hicolor/${size}x${size}/apps/xshuttle.png"
             fi
         done
-        if [[ -f "$tmpdir/icons/xshuttle.svg" ]]; then
+        if [[ -f "$srcdir/icons/xshuttle.svg" ]]; then
             sudo mkdir -p /usr/share/icons/hicolor/scalable/apps
-            sudo cp "$tmpdir/icons/xshuttle.svg" /usr/share/icons/hicolor/scalable/apps/xshuttle.svg
+            sudo cp "$srcdir/icons/xshuttle.svg" /usr/share/icons/hicolor/scalable/apps/xshuttle.svg
         fi
         success "Installed icons"
     fi
 
     # Autostart
-    if [[ -f "$tmpdir/xshuttle-autostart.desktop" ]]; then
+    if [[ -f "$srcdir/xshuttle-autostart.desktop" ]]; then
         mkdir -p "$HOME/.config/autostart"
-        cp "$tmpdir/xshuttle-autostart.desktop" "$HOME/.config/autostart/xshuttle.desktop"
+        cp "$srcdir/xshuttle-autostart.desktop" "$HOME/.config/autostart/xshuttle.desktop"
         success "Enabled autostart"
     fi
 
@@ -106,12 +139,12 @@ install_desktop_linux() {
 }
 
 install_autostart_macos() {
-    local tmpdir="$1"
+    local srcdir="$1"
     local plist_file="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 
-    if [[ -f "$tmpdir/$PLIST_LABEL.plist" ]]; then
+    if [[ -f "$srcdir/$PLIST_LABEL.plist" ]]; then
         mkdir -p "$HOME/Library/LaunchAgents"
-        cp "$tmpdir/$PLIST_LABEL.plist" "$plist_file"
+        cp "$srcdir/$PLIST_LABEL.plist" "$plist_file"
 
         launchctl bootout "gui/$(id -u)" "$plist_file" 2>/dev/null || true
         launchctl bootstrap "gui/$(id -u)" "$plist_file"
@@ -125,14 +158,14 @@ main() {
     detect_platform
 
     echo ""
-    tmpdir=$(download_release)
+    srcdir=$(download_release)
 
-    install_binary "$tmpdir"
+    install_binary "$srcdir"
 
     if [[ "$OS" == "Linux" ]]; then
-        install_desktop_linux "$tmpdir"
+        install_desktop_linux "$srcdir"
     elif [[ "$OS" == "Darwin" ]]; then
-        install_autostart_macos "$tmpdir"
+        install_autostart_macos "$srcdir"
     fi
 
     echo ""

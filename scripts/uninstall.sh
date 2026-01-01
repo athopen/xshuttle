@@ -11,8 +11,8 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-info() { echo -e "${BLUE}$1${NC}"; }
-success() { echo -e "${GREEN}✓ $1${NC}"; }
+info() { echo -e "${BLUE}$1${NC}" >&2; }
+success() { echo -e "${GREEN}✓ $1${NC}" >&2; }
 error() { echo -e "${RED}✗ $1${NC}" >&2; }
 
 # --- Platform Detection ---

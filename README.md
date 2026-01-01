@@ -54,6 +54,12 @@ cargo build --release
 sudo cp target/release/xshuttle /usr/local/bin/
 ```
 
+## Uninstall
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/athopen/xshuttle/master/scripts/uninstall.sh | bash
+```
+
 ## Usage
 
 Run xshuttle:
