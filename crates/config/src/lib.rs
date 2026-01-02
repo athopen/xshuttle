@@ -4,7 +4,7 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-const DEFAULT_CONFIG: &str = include_str!("../assets/default.json");
+const DEFAULT_CONFIG: &str = include_str!("../../../assets/default.json");
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Action {

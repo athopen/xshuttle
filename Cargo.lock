@@ -155,6 +155,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "config"
+version = "0.0.0"
+dependencies = [
+ "dirs",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1635,6 +1644,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
+name = "ssh"
+version = "0.0.0"
+dependencies = [
+ "ssh2-config",
+]
+
+[[package]]
 name = "ssh2-config"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1759,6 +1775,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
+name = "terminal"
+version = "0.0.0"
+dependencies = [
+ "which",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1851,6 +1874,16 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "tray"
+version = "0.0.0"
+dependencies = [
+ "config",
+ "image",
+ "muda",
+ "tray-icon",
 ]
 
 [[package]]
@@ -2322,16 +2355,13 @@ dependencies = [
 name = "xshuttle"
 version = "0.1.0"
 dependencies = [
- "dirs",
- "image",
+ "config",
  "muda",
  "open",
- "serde",
- "serde_json",
- "ssh2-config",
+ "ssh",
  "tao",
- "tray-icon",
- "which",
+ "terminal",
+ "tray",
 ]
 
 [[package]]

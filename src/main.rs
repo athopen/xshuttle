@@ -1,7 +1,4 @@
 mod app;
-mod config;
-mod ssh;
-mod terminal;
 
 use app::App;
 use muda::MenuEvent;
