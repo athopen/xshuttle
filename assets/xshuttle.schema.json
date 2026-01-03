@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/athopen/xshuttle/master/assets/xshuttle.schema.json",
+  "title": "xshuttle Configuration",
+  "description": "Configuration file for xshuttle",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema reference for IDE support"
+    },
+    "terminal": {
+      "type": "string",
+      "description": "Terminal emulator to use. Use 'default' for system default.",
+      "default": "default",
+      "examples": ["default", "kitty", "alacritty", "gnome-terminal"]
+    },
+    "editor": {
+      "type": "string",
+      "description": "Text editor to use. Use 'default' for system default.",
+      "default": "default",
+      "examples": ["default", "vim", "code", "nano"]
+    },
+    "actions": {
+      "type": "array",
+      "description": "List of actions and groups",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Entry"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Entry": {
+      "description": "Either an action or a group",
+      "oneOf": [
+        { "$ref": "#/$defs/Action" },
+        { "$ref": "#/$defs/Group" }
+      ]
+    },
+    "Action": {
+      "type": "object",
+      "description": "An action that executes a command",
+      "required": ["name", "cmd"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Display name",
+          "minLength": 1
+        },
+        "cmd": {
+          "type": "string",
+          "description": "Command to execute",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "Group": {
+      "type": "object",
+      "description": "A group containing nested entries",
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "$ref": "#/$defs/Entry"
+        }
+      }
+    }
+  }
+}

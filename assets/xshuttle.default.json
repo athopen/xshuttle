@@ -1,0 +1,6 @@
+{
+  "$schema": "https://raw.githubusercontent.com/athopen/xshuttle/master/assets/xshuttle.schema.json",
+  "terminal": "default",
+  "editor": "default",
+  "actions": []
+}
