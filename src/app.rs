@@ -19,13 +19,10 @@ impl App {
             eprintln!("Warning: Could not ensure config exists: {}", e);
         }
 
-        let config = match load() {
-            Ok(config) => config,
-            Err(e) => {
-                eprintln!("Warning: {}", e);
-                Config::default()
-            }
-        };
+        let config = load().unwrap_or_else(|e| {
+            eprintln!("Warning: {}", e);
+            Config::default()
+        });
 
         let hosts = parse_ssh_config();
         let (menu, actions) = build_menu(&config.entries, &hosts);
@@ -100,13 +97,10 @@ impl App {
     }
 
     fn reload(&mut self) {
-        let config = match load() {
-            Ok(config) => config,
-            Err(e) => {
-                eprintln!("Warning: {}", e);
-                Config::default()
-            }
-        };
+        let config = load().unwrap_or_else(|e| {
+            eprintln!("Warning: {}", e);
+            Config::default()
+        });
 
         let hosts = parse_ssh_config();
         let (menu, menu_id_map) = build_menu(&config.entries, &hosts);

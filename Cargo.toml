@@ -7,6 +7,7 @@ repository = "https://github.com/athopen/xshuttle"
 description = "Command menu in your system tray"
 
 [dependencies]
+clap = { workspace = true }
 tray = { workspace = true }
 config = { workspace = true }
 terminal = { workspace = true }
@@ -27,6 +28,9 @@ edition = "2024"
 license = "MIT"
 
 [workspace.dependencies]
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
 # UI & Platform
 tray-icon = "0.21.2"
 muda = "0.17.1"

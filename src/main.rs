@@ -1,14 +1,21 @@
 mod app;
 
 use app::App;
+use clap::Parser;
 use muda::MenuEvent;
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
+
+#[derive(Parser)]
+#[command(name = "xshuttle", version)]
+struct Arguments {}
 
 enum UserEvent {
     MenuEvent(MenuEvent),
 }
 
 fn main() {
+    Arguments::parse();
+
     let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
     let proxy = event_loop.create_proxy();
 
