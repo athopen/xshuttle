@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use config::Config;
+use config::{Config, config_path, ensure_config_exists, load};
 use muda::MenuEvent;
 use ssh::parse_ssh_config;
 use terminal::Terminal;
@@ -15,13 +15,20 @@ pub struct App {
 
 impl App {
     pub fn init(&mut self) {
-        if let Err(e) = Config::ensure_config_exists() {
+        if let Err(e) = ensure_config_exists() {
             eprintln!("Warning: Could not ensure config exists: {}", e);
         }
-        let config = Config::load();
+
+        let config = match load() {
+            Ok(config) => config,
+            Err(e) => {
+                eprintln!("Warning: {}", e);
+                Config::default()
+            }
+        };
 
         let hosts = parse_ssh_config();
-        let (menu, actions) = build_menu(&config.actions, &hosts);
+        let (menu, actions) = build_menu(&config.entries, &hosts);
         self.menu_id_map = actions;
         self.config = Some(config);
 
@@ -62,7 +69,7 @@ impl App {
     }
 
     fn configure(&self) {
-        let Some(config_path) = Config::config_path() else {
+        let Some(path) = config_path() else {
             eprintln!("Error: Could not determine config path");
             return;
         };
@@ -74,9 +81,9 @@ impl App {
             .unwrap_or("default");
 
         let result = match editor {
-            "default" => open::that(&config_path),
+            "default" => open::that(&path),
             editor if is_terminal_editor(editor) => {
-                let cmd = format!("{} {}", editor, config_path.display());
+                let cmd = format!("{} {}", editor, path.display());
                 let terminal = self
                     .config
                     .as_ref()
@@ -84,7 +91,7 @@ impl App {
                     .unwrap_or_default();
                 terminal.launch(&cmd).map_err(std::io::Error::other)
             }
-            editor => open::with(&config_path, editor),
+            editor => open::with(&path, editor),
         };
 
         if let Err(e) = result {
@@ -93,10 +100,16 @@ impl App {
     }
 
     fn reload(&mut self) {
-        let config = Config::load();
+        let config = match load() {
+            Ok(config) => config,
+            Err(e) => {
+                eprintln!("Warning: {}", e);
+                Config::default()
+            }
+        };
 
         let hosts = parse_ssh_config();
-        let (menu, menu_id_map) = build_menu(&config.actions, &hosts);
+        let (menu, menu_id_map) = build_menu(&config.entries, &hosts);
         self.menu_id_map = menu_id_map;
         self.config = Some(config);
 
