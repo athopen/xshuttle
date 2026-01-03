@@ -56,14 +56,14 @@ fn load_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
-pub fn build_menu(actions: &[Entry], hosts: &[String]) -> (Menu, HashMap<String, String>) {
+pub fn build_menu(entries: &[Entry], hosts: &[String]) -> (Menu, HashMap<String, String>) {
     let menu = Menu::new();
     let mut menu_id_map = HashMap::new();
     let mut id_counter = 0usize;
 
-    build_entries(&menu, actions, &mut menu_id_map, &mut id_counter);
+    build_entries(&menu, entries, &mut menu_id_map, &mut id_counter);
 
-    if !actions.is_empty() && !hosts.is_empty() {
+    if !entries.is_empty() && !hosts.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
     }
 
@@ -101,19 +101,17 @@ fn build_entries(
 ) {
     for entry in entries {
         match entry {
-            Entry::Action(action) => {
+            Entry::Action(cmd) => {
                 let menu_id = format!("action_{}", *id_counter);
                 *id_counter += 1;
-                menu_id_map.insert(menu_id.clone(), action.cmd.clone());
-                let item = MenuItem::with_id(menu_id, &action.name, true, None);
-                menu.append(&item).expect("Failed to append menu item");
+                menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
+                let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);
+                menu.append(&menu_item).expect("Failed to append menu item");
             }
-            Entry::Submenu(submenus) => {
-                for (name, children) in submenus {
-                    let submenu = Submenu::new(name, true);
-                    build_submenu_entries(&submenu, children, menu_id_map, id_counter);
-                    menu.append(&submenu).expect("Failed to append submenu");
-                }
+            Entry::Group(group) => {
+                let submenu = Submenu::new(&group.name, true);
+                build_submenu_entries(&submenu, &group.entries, menu_id_map, id_counter);
+                menu.append(&submenu).expect("Failed to append submenu");
             }
         }
     }
@@ -127,19 +125,19 @@ fn build_submenu_entries(
 ) {
     for entry in entries {
         match entry {
-            Entry::Action(action) => {
+            Entry::Action(cmd) => {
                 let menu_id = format!("action_{}", *id_counter);
                 *id_counter += 1;
-                menu_id_map.insert(menu_id.clone(), action.cmd.clone());
-                let item = MenuItem::with_id(menu_id, &action.name, true, None);
-                submenu.append(&item).expect("Failed to append menu item");
+                menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
+                let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);
+                submenu
+                    .append(&menu_item)
+                    .expect("Failed to append menu item");
             }
-            Entry::Submenu(submenus) => {
-                for (name, children) in submenus {
-                    let nested = Submenu::new(name, true);
-                    build_submenu_entries(&nested, children, menu_id_map, id_counter);
-                    submenu.append(&nested).expect("Failed to append submenu");
-                }
+            Entry::Group(group) => {
+                let nested = Submenu::new(&group.name, true);
+                build_submenu_entries(&nested, &group.entries, menu_id_map, id_counter);
+                submenu.append(&nested).expect("Failed to append submenu");
             }
         }
     }
