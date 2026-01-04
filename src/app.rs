@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use config::{Config, config_path, ensure_config_exists, load};
+use muda::Menu;
 use muda::MenuEvent;
 use ssh::parse_ssh_config;
 use terminal::Terminal;
@@ -19,17 +20,23 @@ impl App {
             eprintln!("Warning: Could not ensure config exists: {}", e);
         }
 
+        let menu = self.build();
+        self.tray.init(menu);
+    }
+
+    fn build(&mut self) -> Menu {
         let config = load().unwrap_or_else(|e| {
             eprintln!("Warning: {}", e);
             Config::default()
         });
 
         let hosts = parse_ssh_config();
-        let (menu, actions) = build_menu(&config.entries, &hosts);
-        self.menu_id_map = actions;
+        let (menu, menu_id_map) = build_menu(&config.entries, &hosts);
+
+        self.menu_id_map = menu_id_map;
         self.config = Some(config);
 
-        self.tray.init(menu);
+        menu
     }
 
     pub fn handle_menu_event(&mut self, event: MenuEvent) -> bool {
@@ -97,16 +104,7 @@ impl App {
     }
 
     fn reload(&mut self) {
-        let config = load().unwrap_or_else(|e| {
-            eprintln!("Warning: {}", e);
-            Config::default()
-        });
-
-        let hosts = parse_ssh_config();
-        let (menu, menu_id_map) = build_menu(&config.entries, &hosts);
-        self.menu_id_map = menu_id_map;
-        self.config = Some(config);
-
+        let menu = self.build();
         self.tray.set_menu(menu);
     }
 }
