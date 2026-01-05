@@ -2,8 +2,8 @@ mod app;
 
 use app::App;
 use clap::Parser;
-use muda::MenuEvent;
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use tray::MenuEvent;
 
 #[derive(Parser)]
 #[command(name = "xshuttle", version)]

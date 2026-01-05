@@ -13,7 +13,6 @@ config = { workspace = true }
 terminal = { workspace = true }
 ssh = { workspace = true }
 tao = { workspace = true }
-muda = { workspace = true }
 open = { workspace = true }
 
 [lints]
@@ -33,7 +32,6 @@ clap = { version = "4.5", features = ["derive"] }
 
 # UI & Platform
 tray-icon = "0.21.2"
-muda = "0.17.1"
 tao = "0.34.5"
 
 # Image

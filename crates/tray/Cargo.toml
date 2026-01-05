@@ -7,7 +7,6 @@ license.workspace = true
 [dependencies]
 config = { workspace = true }
 tray-icon = { workspace = true }
-muda = { workspace = true }
 image = { workspace = true }
 
 [lints]

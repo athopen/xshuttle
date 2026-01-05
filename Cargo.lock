@@ -2536,7 +2536,6 @@ version = "0.0.0"
 dependencies = [
  "config",
  "image",
- "muda",
  "tray-icon",
 ]
 
@@ -3127,7 +3126,6 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "config",
- "muda",
  "open",
  "ssh",
  "tao",

@@ -1,11 +1,9 @@
 use std::collections::HashMap;
 
 use config::{Config, config_path, ensure_config_exists, load};
-use muda::Menu;
-use muda::MenuEvent;
 use ssh::parse_ssh_config;
 use terminal::Terminal;
-use tray::{MENU_ID_CONFIGURE, MENU_ID_QUIT, MENU_ID_RELOAD, Tray, build_menu};
+use tray::{MENU_ID_CONFIGURE, MENU_ID_QUIT, MENU_ID_RELOAD, Menu, MenuEvent, Tray, build_menu};
 
 #[derive(Default)]
 pub struct App {
