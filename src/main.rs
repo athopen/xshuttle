@@ -5,8 +5,10 @@ use clap::Parser;
 use tao::event_loop::{ControlFlow, EventLoopBuilder};
 use tray::MenuEvent;
 
+const VERSION: &str = concat!(env!("XSHUTTLE_VERSION"), " ", env!("XSHUTTLE_BUILD_HASH"));
+
 #[derive(Parser)]
-#[command(name = "xshuttle", version)]
+#[command(name = "xshuttle", version = VERSION)]
 struct Arguments {}
 
 enum UserEvent {

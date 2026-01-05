@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+env:
+  XSHUTTLE_VERSION: ${{ github.ref_name }}
+
 jobs:
   build-linux:
     runs-on: ubuntu-latest
