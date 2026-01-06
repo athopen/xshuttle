@@ -1,8 +1,10 @@
-mod app;
+mod xshuttle;
 
-use app::App;
 use clap::Parser;
-use tao::event_loop::{ControlFlow, EventLoopBuilder};
+use winit::event_loop::EventLoop;
+use xshuttle::{Application, UserEvent};
+
+#[cfg(not(target_os = "linux"))]
 use tray::MenuEvent;
 
 const VERSION: &str = concat!(env!("XSHUTTLE_VERSION"), " ", env!("XSHUTTLE_BUILD_HASH"));
@@ -11,33 +13,19 @@ const VERSION: &str = concat!(env!("XSHUTTLE_VERSION"), " ", env!("XSHUTTLE_BUIL
 #[command(name = "xshuttle", version = VERSION)]
 struct Arguments {}
 
-enum UserEvent {
-    MenuEvent(MenuEvent),
-}
-
 fn main() {
     Arguments::parse();
 
-    let event_loop = EventLoopBuilder::<UserEvent>::with_user_event().build();
+    let event_loop = EventLoop::<UserEvent>::with_user_event().build().unwrap();
     let proxy = event_loop.create_proxy();
 
+    #[cfg(target_os = "linux")]
+    xshuttle::run_gtk_thread(proxy);
+
+    #[cfg(not(target_os = "linux"))]
     MenuEvent::set_event_handler(Some(move |event| {
         let _ = proxy.send_event(UserEvent::MenuEvent(event));
     }));
 
-    let mut app = App::default();
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
-        match event {
-            tao::event::Event::NewEvents(tao::event::StartCause::Init) => {
-                app.init();
-            }
-            tao::event::Event::UserEvent(UserEvent::MenuEvent(event)) => {
-                if app.handle_menu_event(event) {
-                    *control_flow = ControlFlow::Exit;
-                }
-            }
-            _ => {}
-        }
-    });
+    event_loop.run_app(&mut Application::default()).unwrap();
 }
