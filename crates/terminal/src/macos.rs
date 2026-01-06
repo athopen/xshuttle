@@ -4,7 +4,6 @@ use std::os::unix::fs::PermissionsExt;
 use std::process::Command;
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-#[allow(clippy::enum_variant_names)]
 pub enum Terminal {
     #[default]
     Default,
@@ -17,7 +16,7 @@ pub enum Terminal {
 }
 
 impl Terminal {
-    fn app(&self) -> Option<&'static str> {
+    fn app(self) -> Option<&'static str> {
         match self {
             Self::Default => None,
             Self::ITerm => Some("iTerm"),
@@ -29,14 +28,14 @@ impl Terminal {
         }
     }
 
-    fn custom_launch(&self) -> Option<&'static [&'static str]> {
+    fn custom_launch(self) -> Option<&'static [&'static str]> {
         match self {
             Self::Wezterm => Some(&["open", "-na", "wezterm", "--args", "start", "--"]),
             _ => None,
         }
     }
 
-    fn is_available(&self) -> bool {
+    fn is_available(self) -> bool {
         self.app().is_some_and(is_app_installed)
     }
 
@@ -51,17 +50,26 @@ impl Terminal {
         ]
     }
 
-    fn detect(&self) -> Option<Terminal> {
+    fn detect(self) -> Option<Terminal> {
         // Prefer requested terminal if available
-        if *self != Self::Default && self.is_available() {
-            return Some(*self);
+        if self != Self::Default && self.is_available() {
+            return Some(self);
         }
 
         // First available
-        Self::all().iter().copied().find(|t| t.is_available())
+        Self::all().iter().copied().find(|&t| t.is_available())
     }
 
-    pub fn launch(&self, command: &str) -> Result<(), String> {
+    /// Launches the given command in a terminal.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no terminal is found, or if the terminal fails to launch.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `detect()` returns a terminal without an app name (should never happen).
+    pub fn launch(self, command: &str) -> Result<(), String> {
         let terminal = self
             .detect()
             .ok_or("No terminal found. Install Terminal.app, iTerm, or Warp.")?;
@@ -77,13 +85,13 @@ impl Terminal {
                 Command::new(cmd_args[0])
                     .args(&cmd_args[1..])
                     .spawn()
-                    .map_err(|e| format!("Failed to launch {}: {}", app, e))?;
+                    .map_err(|e| format!("Failed to launch {app}: {e}"))?;
             }
             None => {
                 Command::new("open")
                     .args(["-a", app, &script_path])
                     .spawn()
-                    .map_err(|e| format!("Failed to launch {}: {}", app, e))?;
+                    .map_err(|e| format!("Failed to launch {app}: {e}"))?;
             }
         }
 
@@ -109,7 +117,7 @@ fn is_app_installed(app: &str) -> bool {
     Command::new("mdfind")
         .args([
             "kMDItemKind == 'Application'",
-            &format!("kMDItemDisplayName == '{}'", app),
+            &format!("kMDItemDisplayName == '{app}'"),
         ])
         .output()
         .map(|o| !o.stdout.is_empty())
@@ -118,16 +126,16 @@ fn is_app_installed(app: &str) -> bool {
 
 fn create_script(command: &str) -> Result<String, String> {
     let script_path = "/tmp/xshuttle-run.sh";
-    let script_content = format!("#!/bin/zsh -il\n{}\nexec $SHELL", command);
+    let script_content = format!("#!/bin/zsh -il\n{command}\nexec $SHELL");
 
     let mut file =
-        File::create(script_path).map_err(|e| format!("Failed to create script: {}", e))?;
+        File::create(script_path).map_err(|e| format!("Failed to create script: {e}"))?;
 
     file.write_all(script_content.as_bytes())
-        .map_err(|e| format!("Failed to write script: {}", e))?;
+        .map_err(|e| format!("Failed to write script: {e}"))?;
 
     fs::set_permissions(script_path, fs::Permissions::from_mode(0o755))
-        .map_err(|e| format!("Failed to set permissions: {}", e))?;
+        .map_err(|e| format!("Failed to set permissions: {e}"))?;
 
     Ok(script_path.to_string())
 }
