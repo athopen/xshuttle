@@ -64,7 +64,12 @@ pub fn schema() -> &'static str {
     SCHEMA_JSON
 }
 
-/// Validate a JSON value against the config schema.
+/// Validates a JSON value against the config schema.
+///
+/// # Panics
+///
+/// Panics if the embedded schema is invalid JSON or not a valid JSON Schema.
+/// This should never happen as the schema is compile-time embedded.
 pub fn validate(value: &Value) -> ValidationResult {
     let schema: Value =
         serde_json::from_str(SCHEMA_JSON).expect("embedded schema should be valid JSON");

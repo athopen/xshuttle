@@ -20,7 +20,7 @@ pub struct Application {
 impl Application {
     pub fn init(&mut self) {
         if let Err(e) = ensure_config_exists() {
-            eprintln!("Warning: Could not ensure config exists: {}", e);
+            eprintln!("Warning: Could not ensure config exists: {e}");
         }
 
         let menu = self.build();
@@ -29,7 +29,7 @@ impl Application {
 
     fn build(&mut self) -> Menu {
         let config = load().unwrap_or_else(|e| {
-            eprintln!("Warning: {}", e);
+            eprintln!("Warning: {e}");
             Config::default()
         });
 
@@ -42,7 +42,7 @@ impl Application {
         menu
     }
 
-    pub fn handle_menu_event(&mut self, event: MenuEvent) -> bool {
+    pub fn handle_menu_event(&mut self, event: &MenuEvent) -> bool {
         let menu_id = &event.id.0;
 
         if menu_id == MENU_ID_QUIT {
@@ -68,7 +68,7 @@ impl Application {
                 .unwrap_or_default();
 
             if let Err(e) = terminal.launch(command) {
-                eprintln!("Error: {}", e);
+                eprintln!("Error: {e}");
             }
         }
 
@@ -84,13 +84,13 @@ impl Application {
         let editor = self
             .config
             .as_ref()
-            .map(|c| c.editor.as_str())
-            .unwrap_or("default");
+            .map_or("default", |c| c.editor.as_str());
 
+        let path_display = path.display();
         let result = match editor {
             "default" => open::that(&path),
             editor if is_terminal_editor(editor) => {
-                let cmd = format!("{} {}", editor, path.display());
+                let cmd = format!("{editor} {path_display}");
                 let terminal = self
                     .config
                     .as_ref()
@@ -102,7 +102,7 @@ impl Application {
         };
 
         if let Err(e) = result {
-            eprintln!("Error opening config: {}", e);
+            eprintln!("Error opening config: {e}");
         }
     }
 

@@ -49,13 +49,17 @@ impl From<ConfigError> for LoadError {
     }
 }
 
-/// Returns the default config file path (~/.xshuttle.json)
+/// Returns the default config file path (~/.xshuttle.json).
 pub fn config_path() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(".xshuttle.json"))
 }
 
 /// Ensures the config file exists, creating a default one if missing.
-/// Returns the path to the config file.
+///
+/// # Errors
+///
+/// Returns an error if the home directory cannot be determined or if
+/// writing the default config file fails.
 pub fn ensure_config_exists() -> Result<PathBuf, LoadError> {
     let path = config_path().ok_or(LoadError::NoHomeDir)?;
 
@@ -67,18 +71,30 @@ pub fn ensure_config_exists() -> Result<PathBuf, LoadError> {
     Ok(path)
 }
 
-/// Load config from a string.
+/// Loads config from a string.
+///
+/// # Errors
+///
+/// Returns an error if the JSON is invalid or fails schema validation.
 pub fn load_from_str(s: &str) -> Result<Config, ConfigError> {
     s.parse()
 }
 
-/// Load config from a specific path.
+/// Loads config from a specific path.
+///
+/// # Errors
+///
+/// Returns an error if the file cannot be read or the config is invalid.
 pub fn load_from_path(path: &Path) -> Result<Config, LoadError> {
     let contents = fs::read_to_string(path)?;
     Ok(load_from_str(&contents)?)
 }
 
-/// Load config from the default path (~/.xshuttle.json).
+/// Loads config from the default path (~/.xshuttle.json).
+///
+/// # Errors
+///
+/// Returns an error if the home directory cannot be determined or the config is invalid.
 pub fn load() -> Result<Config, LoadError> {
     let path = config_path().ok_or(LoadError::NoHomeDir)?;
 
@@ -148,7 +164,7 @@ mod tests {
                 assert_eq!(c.name, "Test");
                 assert_eq!(c.cmd, "echo hello");
             }
-            _ => panic!("Expected Action"),
+            Entry::Group(_) => panic!("Expected Action"),
         }
     }
 
@@ -168,14 +184,14 @@ mod tests {
         assert_eq!(config.entries.len(), 2);
         match &config.entries[0] {
             Entry::Action(c) => assert_eq!(c.name, "Top Level"),
-            _ => panic!("Expected Action"),
+            Entry::Group(_) => panic!("Expected Action"),
         }
         match &config.entries[1] {
             Entry::Group(group) => {
                 assert_eq!(group.name, "Production");
                 assert_eq!(group.entries.len(), 1);
             }
-            _ => panic!("Expected Group"),
+            Entry::Action(_) => panic!("Expected Group"),
         }
     }
 
@@ -202,13 +218,13 @@ mod tests {
                         assert_eq!(l2.name, "Level2");
                         match &l2.entries[0] {
                             Entry::Action(c) => assert_eq!(c.name, "Deep"),
-                            _ => panic!("Expected Action at level 3"),
+                            Entry::Group(_) => panic!("Expected Action at level 3"),
                         }
                     }
-                    _ => panic!("Expected Group at level 2"),
+                    Entry::Action(_) => panic!("Expected Group at level 2"),
                 }
             }
-            _ => panic!("Expected Group at level 1"),
+            Entry::Action(_) => panic!("Expected Group at level 1"),
         }
     }
 
@@ -232,7 +248,7 @@ mod tests {
                 assert_eq!(group.name, "Servers");
                 assert_eq!(group.entries.len(), 3);
             }
-            _ => panic!("Expected Group"),
+            Entry::Action(_) => panic!("Expected Group"),
         }
     }
 

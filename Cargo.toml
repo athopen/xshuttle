@@ -61,10 +61,40 @@ terminal = { path = "crates/terminal" }
 ssh = { path = "crates/ssh" }
 
 [workspace.lints.rust]
+# Safety
 unsafe_code = "deny"
+unsafe_op_in_unsafe_fn = "warn"
+
+# Code quality
+ambiguous_negative_literals = "warn"
+missing_debug_implementations = "warn"
+redundant_imports = "warn"
+redundant_lifetimes = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
 
 [workspace.lints.clippy]
-all = "warn"
+# Lint groups (set priority -1 so individual lints can override)
+all = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+
+# Restriction lints (selectively enabled)
+allow_attributes_without_reason = "warn"
+undocumented_unsafe_blocks = "warn"
+
+# Allowed lints (with reasons)
+# Internal crates don't need full crates.io metadata
+cargo_common_metadata = "allow"
+# Multiple crate versions come from transitive dependencies
+multiple_crate_versions = "allow"
+# Don't enforce #[must_use] on every function
+must_use_candidate = "allow"
 
 [profile.release]
 lto = "fat"

@@ -18,7 +18,7 @@ pub enum Terminal {
 }
 
 impl Terminal {
-    fn bin(&self) -> Option<&'static str> {
+    fn bin(self) -> Option<&'static str> {
         match self {
             Self::Default => None,
             Self::Gnome => Some("gnome-terminal"),
@@ -35,24 +35,22 @@ impl Terminal {
         }
     }
 
-    fn args(&self) -> &'static [&'static str] {
+    fn args(self) -> &'static [&'static str] {
         match self {
             Self::Default => &[],
             Self::Gnome => &["--", "sh", "-c", "{}; exec bash"],
-            Self::Konsole => &["-e", "sh", "-c", "{}; exec bash"],
-            Self::Xfce4 => &["-e", "sh -c '{}; exec bash'"],
-            Self::Alacritty => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Konsole
+            | Self::Alacritty
+            | Self::Ghostty
+            | Self::XTerminalEmulator
+            | Self::Xterm => &["-e", "sh", "-c", "{}; exec bash"],
+            Self::Xfce4 | Self::Tilix | Self::Terminator => &["-e", "sh -c '{}; exec bash'"],
             Self::Kitty => &["sh", "-c", "{}; exec bash"],
-            Self::Ghostty => &["-e", "sh", "-c", "{}; exec bash"],
             Self::Wezterm => &["start", "--", "sh", "-c", "{}; exec bash"],
-            Self::Tilix => &["-e", "sh -c '{}; exec bash'"],
-            Self::Terminator => &["-e", "sh -c '{}; exec bash'"],
-            Self::XTerminalEmulator => &["-e", "sh", "-c", "{}; exec bash"],
-            Self::Xterm => &["-e", "sh", "-c", "{}; exec bash"],
         }
     }
 
-    fn is_available(&self) -> bool {
+    fn is_available(self) -> bool {
         self.bin().is_some_and(|bin| which::which(bin).is_ok())
     }
 
@@ -72,10 +70,10 @@ impl Terminal {
         ]
     }
 
-    fn detect(&self) -> Option<Terminal> {
+    fn detect(self) -> Option<Terminal> {
         // Prefer requested terminal if available
-        if *self != Self::Default && self.is_available() {
-            return Some(*self);
+        if self != Self::Default && self.is_available() {
+            return Some(self);
         }
 
         // Check $TERMINAL env var
@@ -88,9 +86,19 @@ impl Terminal {
         }
 
         // First available
-        Self::all().iter().copied().find(|t| t.is_available())
+        Self::all().iter().copied().find(|&t| t.is_available())
     }
 
+    /// Launches a terminal with the given command.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if no terminal emulator is found or if spawning fails.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `detect()` returns a terminal variant that has no binary name.
+    /// This should never happen in practice.
     pub fn launch(&self, command: &str) -> Result<(), String> {
         let terminal = self
             .detect()
@@ -106,7 +114,7 @@ impl Terminal {
         Command::new(bin)
             .args(&args)
             .spawn()
-            .map_err(|e| format!("Failed to launch {}: {}", bin, e))?;
+            .map_err(|e| format!("Failed to launch {bin}: {e}"))?;
 
         Ok(())
     }

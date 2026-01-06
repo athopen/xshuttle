@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use config::Entry;
 use image::load_from_memory;
@@ -17,6 +18,14 @@ pub struct Tray {
     icon: Option<TrayIcon>,
 }
 
+impl fmt::Debug for Tray {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Tray")
+            .field("icon", &self.icon.as_ref().map(|_| "TrayIcon"))
+            .finish()
+    }
+}
+
 impl Default for Tray {
     fn default() -> Self {
         Self::new()
@@ -24,10 +33,16 @@ impl Default for Tray {
 }
 
 impl Tray {
+    /// Creates a new tray icon instance (not yet initialized).
     pub fn new() -> Self {
         Self { icon: None }
     }
 
+    /// Initializes the tray icon with the given menu.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the tray icon or embedded icon cannot be created.
     pub fn init(&mut self, menu: Menu) {
         self.icon = Some(
             TrayIconBuilder::new()
@@ -58,6 +73,13 @@ fn load_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
+/// Builds a menu from config entries and SSH hosts.
+///
+/// Returns the menu and a map from menu IDs to commands.
+///
+/// # Panics
+///
+/// Panics if menu items cannot be appended to the menu.
 pub fn build_menu(entries: &[Entry], hosts: &[String]) -> (Menu, HashMap<String, String>) {
     let menu = Menu::new();
     let mut menu_id_map = HashMap::new();
@@ -70,8 +92,8 @@ pub fn build_menu(entries: &[Entry], hosts: &[String]) -> (Menu, HashMap<String,
     }
 
     for (index, host) in hosts.iter().enumerate() {
-        let menu_id = format!("ssh_{}", index);
-        menu_id_map.insert(menu_id.clone(), format!("ssh {}", host));
+        let menu_id = format!("ssh_{index}");
+        menu_id_map.insert(menu_id.clone(), format!("ssh {host}"));
         let item = MenuItem::with_id(menu_id, host, true, None);
         menu.append(&item).expect("Failed to append menu item");
     }
@@ -104,7 +126,8 @@ fn build_entries(
     for entry in entries {
         match entry {
             Entry::Action(cmd) => {
-                let menu_id = format!("action_{}", *id_counter);
+                let id = *id_counter;
+                let menu_id = format!("action_{id}");
                 *id_counter += 1;
                 menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
                 let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);
@@ -128,7 +151,8 @@ fn build_submenu_entries(
     for entry in entries {
         match entry {
             Entry::Action(cmd) => {
-                let menu_id = format!("action_{}", *id_counter);
+                let id = *id_counter;
+                let menu_id = format!("action_{id}");
                 *id_counter += 1;
                 menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
                 let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);

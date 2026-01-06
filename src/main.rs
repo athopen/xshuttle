@@ -38,7 +38,7 @@ impl ApplicationHandler<UserEvent> for Application {
 
         // On other platforms, handle the menu event directly
         #[cfg(not(target_os = "linux"))]
-        if self.handle_menu_event(event) {
+        if self.handle_menu_event(&event) {
             event_loop.exit();
         }
     }
@@ -73,7 +73,7 @@ fn run_gtk_thread(quit_proxy: winit::event_loop::EventLoopProxy<UserEvent>) {
         let receiver = MenuEvent::receiver();
         gtk::glib::timeout_add_local(std::time::Duration::from_millis(50), move || {
             while let Ok(event) = receiver.try_recv() {
-                if app.handle_menu_event(event) {
+                if app.handle_menu_event(&event) {
                     let quit_event = MenuEvent {
                         id: MenuId::new("quit"),
                     };

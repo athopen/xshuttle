@@ -1,10 +1,9 @@
 use ssh2_config::{ParseRule, SshConfig};
 
-/// Parse SSH config file and return a list of host names
+/// Parses SSH config file and returns host names.
 pub fn parse_ssh_config() -> Vec<String> {
-    let config = match SshConfig::parse_default_file(ParseRule::ALLOW_UNKNOWN_FIELDS) {
-        Ok(config) => config,
-        Err(_) => return Vec::new(),
+    let Ok(config) = SshConfig::parse_default_file(ParseRule::ALLOW_UNKNOWN_FIELDS) else {
+        return Vec::new();
     };
 
     let mut hosts = Vec::new();
