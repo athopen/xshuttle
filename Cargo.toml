@@ -12,8 +12,14 @@ tray = { workspace = true }
 config = { workspace = true }
 terminal = { workspace = true }
 ssh = { workspace = true }
-tao = { workspace = true }
+winit = { workspace = true }
 open = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = { version = "0.18", features = ["v3_24"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-foundation = "0.3"
 
 [lints]
 workspace = true
@@ -32,7 +38,7 @@ clap = { version = "4.5", features = ["derive"] }
 
 # UI & Platform
 tray-icon = "0.21.2"
-tao = "0.34.5"
+winit = "0.30"
 
 # Image
 image = { version = "0.25", default-features = false, features = ["png"] }

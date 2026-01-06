@@ -5,7 +5,7 @@ use image::load_from_memory;
 use tray_icon::menu::{MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
-pub use tray_icon::menu::{Menu, MenuEvent};
+pub use tray_icon::menu::{Menu, MenuEvent, MenuId};
 
 pub const MENU_ID_CONFIGURE: &str = "configure";
 pub const MENU_ID_RELOAD: &str = "reload";
