@@ -165,10 +165,9 @@ impl ApplicationHandler<UserEvent> for Application {
 #[cfg(target_os = "macos")]
 fn wake_macos_run_loop() {
     // Wake the run loop to ensure the tray icon appears immediately
-    unsafe {
-        use objc2_core_foundation::{CFRunLoopGetMain, CFRunLoopWakeUp};
-        let rl = CFRunLoopGetMain().unwrap();
-        CFRunLoopWakeUp(&rl);
+    use objc2_core_foundation::CFRunLoop;
+    if let Some(rl) = CFRunLoop::main() {
+        rl.wake_up();
     }
 }
 
