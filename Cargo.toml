@@ -37,7 +37,7 @@ license = "MIT"
 clap = { version = "4.5", features = ["derive"] }
 
 # UI & Platform
-tray-icon = "0.21.2"
+tray-icon = { version = "0.21.2", default-features = false }
 winit = "0.30"
 
 # Image
