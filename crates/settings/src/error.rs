@@ -1,6 +1,42 @@
-use crate::sources::config::ValidationError;
+use std::fmt;
 use std::io;
 use thiserror::Error;
+
+// ============================================================================
+// Validation Types
+// ============================================================================
+
+/// A validation error with path and message.
+#[derive(Debug, Clone)]
+pub struct ValidationError {
+    /// JSON path to the error location.
+    pub path: String,
+    /// Human-readable error description.
+    pub message: String,
+}
+
+impl fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.path.is_empty() {
+            write!(f, "{}", self.message)
+        } else {
+            write!(f, "{}: {}", self.path, self.message)
+        }
+    }
+}
+
+/// Result of config validation.
+#[derive(Debug)]
+pub enum ValidationResult {
+    /// Validation passed with no errors.
+    Valid,
+    /// Validation failed with one or more errors.
+    Invalid(Vec<ValidationError>),
+}
+
+// ============================================================================
+// Settings Error
+// ============================================================================
 
 /// Error type for settings loading operations.
 #[derive(Error, Debug)]

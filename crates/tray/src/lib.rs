@@ -1,7 +1,7 @@
 use std::fmt;
 
 use image::load_from_memory;
-use settings::{Action, Node, Settings};
+use settings::{Action, Node, Nodes, Settings};
 use tray_icon::menu::{MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
@@ -86,7 +86,7 @@ pub fn build_menu(settings: &Settings) -> Menu {
     let menu = Menu::new();
 
     // Build action entries (with submenus)
-    build_action_nodes(&menu, settings.actions.nodes());
+    build_action_nodes(&menu, settings.actions.nodes(), &settings.actions);
 
     // Add separator if both sections have items
     if !settings.actions.is_empty() && !settings.hosts.is_empty() {
@@ -95,9 +95,11 @@ pub fn build_menu(settings: &Settings) -> Menu {
 
     // Build host entries (flat)
     for node in settings.hosts.nodes() {
-        if let Node::Leaf { id, value } = node {
+        if let Node::Leaf { id, .. } = node
+            && let Some(host) = settings.hosts.get(*id)
+        {
             let menu_id = format!("{}{}", MENU_ID_HOST_PREFIX, id.index());
-            let item = MenuItem::with_id(menu_id, &value.hostname, true, None);
+            let item = MenuItem::with_id(menu_id, &host.hostname, true, None);
             menu.append(&item).expect("Failed to append menu item");
         }
     }
@@ -123,36 +125,40 @@ pub fn build_menu(settings: &Settings) -> Menu {
     menu
 }
 
-fn build_action_nodes(menu: &Menu, nodes: &[Node<Action>]) {
-    for node in nodes {
+fn build_action_nodes(menu: &Menu, tree: &[Node<Action>], actions: &Nodes<Action>) {
+    for node in tree {
         match node {
-            Node::Leaf { id, value } => {
-                let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
-                let menu_item = MenuItem::with_id(menu_id, &value.name, true, None);
-                menu.append(&menu_item).expect("Failed to append menu item");
+            Node::Leaf { id, .. } => {
+                if let Some(action) = actions.get(*id) {
+                    let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
+                    let menu_item = MenuItem::with_id(menu_id, &action.name, true, None);
+                    menu.append(&menu_item).expect("Failed to append menu item");
+                }
             }
             Node::Group { name, children } => {
                 let submenu = Submenu::new(name, true);
-                build_action_submenu(&submenu, children);
+                build_action_submenu(&submenu, children, actions);
                 menu.append(&submenu).expect("Failed to append submenu");
             }
         }
     }
 }
 
-fn build_action_submenu(submenu: &Submenu, nodes: &[Node<Action>]) {
-    for node in nodes {
+fn build_action_submenu(submenu: &Submenu, tree: &[Node<Action>], actions: &Nodes<Action>) {
+    for node in tree {
         match node {
-            Node::Leaf { id, value } => {
-                let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
-                let menu_item = MenuItem::with_id(menu_id, &value.name, true, None);
-                submenu
-                    .append(&menu_item)
-                    .expect("Failed to append menu item");
+            Node::Leaf { id, .. } => {
+                if let Some(action) = actions.get(*id) {
+                    let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
+                    let menu_item = MenuItem::with_id(menu_id, &action.name, true, None);
+                    submenu
+                        .append(&menu_item)
+                        .expect("Failed to append menu item");
+                }
             }
             Node::Group { name, children } => {
                 let nested = Submenu::new(name, true);
-                build_action_submenu(&nested, children);
+                build_action_submenu(&nested, children, actions);
                 submenu.append(&nested).expect("Failed to append submenu");
             }
         }

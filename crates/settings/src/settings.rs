@@ -1,7 +1,7 @@
 use crate::error::SettingsError;
 use crate::host::Host;
+use crate::loaders::{config, ssh};
 use crate::nodes::Nodes;
-use crate::sources::{config, ssh};
 use crate::types::Action;
 use std::io;
 use std::path::PathBuf;
@@ -17,6 +17,17 @@ pub struct Settings {
     pub actions: Nodes<Action>,
     /// SSH hosts from ~/.ssh/config with O(1) ID-based lookup.
     pub hosts: Nodes<Host>,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            terminal: Self::DEFAULT_TERMINAL.to_string(),
+            editor: Self::DEFAULT_EDITOR.to_string(),
+            actions: Nodes::from_entries(vec![]),
+            hosts: Nodes::from_hostnames(vec![]),
+        }
+    }
 }
 
 impl Settings {
@@ -89,5 +100,14 @@ mod tests {
         if let Some(p) = path {
             assert!(p.ends_with(".xshuttle.json"));
         }
+    }
+
+    #[test]
+    fn test_settings_default() {
+        let settings = Settings::default();
+        assert_eq!(settings.terminal, Settings::DEFAULT_TERMINAL);
+        assert_eq!(settings.editor, Settings::DEFAULT_EDITOR);
+        assert!(settings.actions.is_empty());
+        assert!(settings.hosts.is_empty());
     }
 }
