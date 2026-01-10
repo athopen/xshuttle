@@ -1,6 +1,8 @@
 use crate::error::SettingsError;
+use crate::host::Host;
+use crate::nodes::Nodes;
 use crate::sources::{config, ssh};
-use crate::types::Entry;
+use crate::types::Action;
 use std::io;
 use std::path::PathBuf;
 
@@ -11,10 +13,10 @@ pub struct Settings {
     pub terminal: String,
     /// Editor for opening config files.
     pub editor: String,
-    /// Actions from ~/.xshuttle.json.
-    pub actions: Vec<Entry>,
-    /// SSH hosts from ~/.ssh/config.
-    pub hosts: Vec<String>,
+    /// Actions from ~/.xshuttle.json with O(1) ID-based lookup.
+    pub actions: Nodes<Action>,
+    /// SSH hosts from ~/.ssh/config with O(1) ID-based lookup.
+    pub hosts: Nodes<Host>,
 }
 
 impl Settings {
@@ -39,6 +41,7 @@ impl Settings {
     /// - SSH config file exists but cannot be parsed
     pub fn load() -> Result<Self, SettingsError> {
         let config = config::load()?.unwrap_or_default();
+        let raw_hosts = ssh::parse_ssh_config()?;
 
         Ok(Settings {
             terminal: config
@@ -47,8 +50,8 @@ impl Settings {
             editor: config
                 .editor
                 .unwrap_or_else(|| Self::DEFAULT_EDITOR.to_string()),
-            actions: config.actions.unwrap_or_default(),
-            hosts: ssh::parse_ssh_config()?,
+            actions: Nodes::from_entries(config.actions.unwrap_or_default()),
+            hosts: Nodes::from_hostnames(raw_hosts),
         })
     }
 

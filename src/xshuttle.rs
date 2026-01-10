@@ -1,8 +1,9 @@
-use std::collections::HashMap;
-
-use settings::Settings;
+use settings::{NodeId, Settings};
 use terminal::Terminal;
-use tray::{MENU_ID_CONFIGURE, MENU_ID_QUIT, MENU_ID_RELOAD, Menu, MenuEvent, Tray, build_menu};
+use tray::{
+    MENU_ID_ACTION_PREFIX, MENU_ID_CONFIGURE, MENU_ID_HOST_PREFIX, MENU_ID_QUIT, MENU_ID_RELOAD,
+    Menu, MenuEvent, Tray, build_menu,
+};
 
 #[derive(Debug)]
 pub enum UserEvent {
@@ -13,7 +14,6 @@ pub enum UserEvent {
 pub struct Application {
     settings: Option<Settings>,
     tray: Tray,
-    menu_id_map: HashMap<String, String>,
 }
 
 impl Application {
@@ -33,14 +33,11 @@ impl Application {
                 eprintln!("Error loading settings: {e}");
                 // Return empty menu if settings fail to load
                 self.settings = None;
-                self.menu_id_map.clear();
                 return Menu::new();
             }
         };
 
-        let (menu, menu_id_map) = build_menu(&settings);
-
-        self.menu_id_map = menu_id_map;
+        let menu = build_menu(&settings);
         self.settings = Some(settings);
 
         menu
@@ -64,19 +61,42 @@ impl Application {
             return false;
         }
 
-        if let Some(command) = self.menu_id_map.get(menu_id) {
+        // O(1) lookup for dynamic menu items
+        let command = self.lookup_command(menu_id);
+        if let Some(cmd) = command {
             let terminal = self
                 .settings
                 .as_ref()
                 .map(|s| Terminal::from(s.terminal.as_str()))
                 .unwrap_or_default();
 
-            if let Err(e) = terminal.launch(command) {
+            if let Err(e) = terminal.launch(&cmd) {
                 eprintln!("Error: {e}");
             }
         }
 
         false
+    }
+
+    /// O(1) lookup for action and host commands by menu ID.
+    fn lookup_command(&self, menu_id: &str) -> Option<String> {
+        let settings = self.settings.as_ref()?;
+
+        // Check for action prefix: "action_{index}"
+        if let Some(index_str) = menu_id.strip_prefix(MENU_ID_ACTION_PREFIX) {
+            let index: usize = index_str.parse().ok()?;
+            let action = settings.actions.get(NodeId::from_index(index))?;
+            return Some(action.cmd.clone());
+        }
+
+        // Check for host prefix: "host_{index}"
+        if let Some(index_str) = menu_id.strip_prefix(MENU_ID_HOST_PREFIX) {
+            let index: usize = index_str.parse().ok()?;
+            let host = settings.hosts.get(NodeId::from_index(index))?;
+            return Some(host.command());
+        }
+
+        None
     }
 
     fn configure(&self) {

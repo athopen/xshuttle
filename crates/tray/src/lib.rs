@@ -1,8 +1,7 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use image::load_from_memory;
-use settings::{Entry, Settings};
+use settings::{Action, Node, Settings};
 use tray_icon::menu::{MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
@@ -11,6 +10,8 @@ pub use tray_icon::menu::{Menu, MenuEvent, MenuId};
 pub const MENU_ID_CONFIGURE: &str = "configure";
 pub const MENU_ID_RELOAD: &str = "reload";
 pub const MENU_ID_QUIT: &str = "quit";
+pub const MENU_ID_ACTION_PREFIX: &str = "action_";
+pub const MENU_ID_HOST_PREFIX: &str = "host_";
 
 const ICON_BYTES: &[u8] = include_bytes!("../../../assets/icon.png");
 
@@ -75,33 +76,38 @@ fn load_icon() -> Icon {
 
 /// Builds a menu from settings.
 ///
-/// Returns the menu and a map from menu IDs to commands.
+/// Uses the indexed `Nodes<T>` containers for O(1) lookup.
+/// Menu item IDs are formatted as `node_{index}` for dynamic entries.
 ///
 /// # Panics
 ///
 /// Panics if menu items cannot be appended to the menu.
-pub fn build_menu(settings: &Settings) -> (Menu, HashMap<String, String>) {
+pub fn build_menu(settings: &Settings) -> Menu {
     let menu = Menu::new();
-    let mut menu_id_map = HashMap::new();
-    let mut id_counter = 0usize;
 
-    build_entries(&menu, &settings.actions, &mut menu_id_map, &mut id_counter);
+    // Build action entries (with submenus)
+    build_action_nodes(&menu, settings.actions.nodes());
 
+    // Add separator if both sections have items
     if !settings.actions.is_empty() && !settings.hosts.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
     }
 
-    for (index, host) in settings.hosts.iter().enumerate() {
-        let menu_id = format!("ssh_{index}");
-        menu_id_map.insert(menu_id.clone(), format!("ssh {host}"));
-        let item = MenuItem::with_id(menu_id, host, true, None);
-        menu.append(&item).expect("Failed to append menu item");
+    // Build host entries (flat)
+    for node in settings.hosts.nodes() {
+        if let Node::Leaf { id, value } = node {
+            let menu_id = format!("{}{}", MENU_ID_HOST_PREFIX, id.index());
+            let item = MenuItem::with_id(menu_id, &value.hostname, true, None);
+            menu.append(&item).expect("Failed to append menu item");
+        }
     }
 
-    if !settings.hosts.is_empty() {
+    // Add separator before static items
+    if !settings.hosts.is_empty() || !settings.actions.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
     }
 
+    // Add static menu items
     menu.append(&MenuItem::with_id(
         MENU_ID_CONFIGURE,
         "Configure",
@@ -114,55 +120,39 @@ pub fn build_menu(settings: &Settings) -> (Menu, HashMap<String, String>) {
     menu.append(&MenuItem::with_id(MENU_ID_QUIT, "Quit", true, None))
         .unwrap();
 
-    (menu, menu_id_map)
+    menu
 }
 
-fn build_entries(
-    menu: &Menu,
-    entries: &[Entry],
-    menu_id_map: &mut HashMap<String, String>,
-    id_counter: &mut usize,
-) {
-    for entry in entries {
-        match entry {
-            Entry::Action(cmd) => {
-                let id = *id_counter;
-                let menu_id = format!("action_{id}");
-                *id_counter += 1;
-                menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
-                let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);
+fn build_action_nodes(menu: &Menu, nodes: &[Node<Action>]) {
+    for node in nodes {
+        match node {
+            Node::Leaf { id, value } => {
+                let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
+                let menu_item = MenuItem::with_id(menu_id, &value.name, true, None);
                 menu.append(&menu_item).expect("Failed to append menu item");
             }
-            Entry::Group(group) => {
-                let submenu = Submenu::new(&group.name, true);
-                build_submenu_entries(&submenu, &group.entries, menu_id_map, id_counter);
+            Node::Group { name, children } => {
+                let submenu = Submenu::new(name, true);
+                build_action_submenu(&submenu, children);
                 menu.append(&submenu).expect("Failed to append submenu");
             }
         }
     }
 }
 
-fn build_submenu_entries(
-    submenu: &Submenu,
-    entries: &[Entry],
-    menu_id_map: &mut HashMap<String, String>,
-    id_counter: &mut usize,
-) {
-    for entry in entries {
-        match entry {
-            Entry::Action(cmd) => {
-                let id = *id_counter;
-                let menu_id = format!("action_{id}");
-                *id_counter += 1;
-                menu_id_map.insert(menu_id.clone(), cmd.cmd.clone());
-                let menu_item = MenuItem::with_id(menu_id, &cmd.name, true, None);
+fn build_action_submenu(submenu: &Submenu, nodes: &[Node<Action>]) {
+    for node in nodes {
+        match node {
+            Node::Leaf { id, value } => {
+                let menu_id = format!("{}{}", MENU_ID_ACTION_PREFIX, id.index());
+                let menu_item = MenuItem::with_id(menu_id, &value.name, true, None);
                 submenu
                     .append(&menu_item)
                     .expect("Failed to append menu item");
             }
-            Entry::Group(group) => {
-                let nested = Submenu::new(&group.name, true);
-                build_submenu_entries(&nested, &group.entries, menu_id_map, id_counter);
+            Node::Group { name, children } => {
+                let nested = Submenu::new(name, true);
+                build_action_submenu(&nested, children);
                 submenu.append(&nested).expect("Failed to append submenu");
             }
         }
