@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use config::{Config, config_path, ensure_config_exists, load};
-use ssh::parse_ssh_config;
+use settings::Settings;
 use terminal::Terminal;
 use tray::{MENU_ID_CONFIGURE, MENU_ID_QUIT, MENU_ID_RELOAD, Menu, MenuEvent, Tray, build_menu};
 
@@ -12,14 +11,14 @@ pub enum UserEvent {
 
 #[derive(Default)]
 pub struct Application {
-    config: Option<Config>,
+    settings: Option<Settings>,
     tray: Tray,
     menu_id_map: HashMap<String, String>,
 }
 
 impl Application {
     pub fn init(&mut self) {
-        if let Err(e) = ensure_config_exists() {
+        if let Err(e) = Settings::ensure_config_exists() {
             eprintln!("Warning: Could not ensure config exists: {e}");
         }
 
@@ -28,16 +27,21 @@ impl Application {
     }
 
     fn build(&mut self) -> Menu {
-        let config = load().unwrap_or_else(|e| {
-            eprintln!("Warning: {e}");
-            Config::default()
-        });
+        let settings = match Settings::load() {
+            Ok(settings) => settings,
+            Err(e) => {
+                eprintln!("Error loading settings: {e}");
+                // Return empty menu if settings fail to load
+                self.settings = None;
+                self.menu_id_map.clear();
+                return Menu::new();
+            }
+        };
 
-        let hosts = parse_ssh_config();
-        let (menu, menu_id_map) = build_menu(&config.entries, &hosts);
+        let (menu, menu_id_map) = build_menu(&settings);
 
         self.menu_id_map = menu_id_map;
-        self.config = Some(config);
+        self.settings = Some(settings);
 
         menu
     }
@@ -62,9 +66,9 @@ impl Application {
 
         if let Some(command) = self.menu_id_map.get(menu_id) {
             let terminal = self
-                .config
+                .settings
                 .as_ref()
-                .map(|c| Terminal::from(c.terminal.as_str()))
+                .map(|s| Terminal::from(s.terminal.as_str()))
                 .unwrap_or_default();
 
             if let Err(e) = terminal.launch(command) {
@@ -76,15 +80,15 @@ impl Application {
     }
 
     fn configure(&self) {
-        let Some(path) = config_path() else {
+        let Some(path) = Settings::config_path() else {
             eprintln!("Error: Could not determine config path");
             return;
         };
 
         let editor = self
-            .config
+            .settings
             .as_ref()
-            .map_or("default", |c| c.editor.as_str());
+            .map_or("default", |s| s.editor.as_str());
 
         let path_display = path.display();
         let result = match editor {
@@ -92,9 +96,9 @@ impl Application {
             editor if is_terminal_editor(editor) => {
                 let cmd = format!("{editor} {path_display}");
                 let terminal = self
-                    .config
+                    .settings
                     .as_ref()
-                    .map(|c| Terminal::from(c.terminal.as_str()))
+                    .map(|s| Terminal::from(s.terminal.as_str()))
                     .unwrap_or_default();
                 terminal.launch(&cmd).map_err(std::io::Error::other)
             }

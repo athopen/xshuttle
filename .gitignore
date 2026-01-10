@@ -1,4 +1,5 @@
-.claude
+.claude/plans
+.claude/settings.local.json
 .idea
-/references
-/target
+**/references
+**/target

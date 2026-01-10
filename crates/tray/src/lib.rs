@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use config::Entry;
 use image::load_from_memory;
+use settings::{Entry, Settings};
 use tray_icon::menu::{MenuItem, PredefinedMenuItem, Submenu};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
@@ -73,32 +73,32 @@ fn load_icon() -> Icon {
     Icon::from_rgba(img.into_raw(), width, height).expect("Failed to create icon")
 }
 
-/// Builds a menu from config entries and SSH hosts.
+/// Builds a menu from settings.
 ///
 /// Returns the menu and a map from menu IDs to commands.
 ///
 /// # Panics
 ///
 /// Panics if menu items cannot be appended to the menu.
-pub fn build_menu(entries: &[Entry], hosts: &[String]) -> (Menu, HashMap<String, String>) {
+pub fn build_menu(settings: &Settings) -> (Menu, HashMap<String, String>) {
     let menu = Menu::new();
     let mut menu_id_map = HashMap::new();
     let mut id_counter = 0usize;
 
-    build_entries(&menu, entries, &mut menu_id_map, &mut id_counter);
+    build_entries(&menu, &settings.actions, &mut menu_id_map, &mut id_counter);
 
-    if !entries.is_empty() && !hosts.is_empty() {
+    if !settings.actions.is_empty() && !settings.hosts.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
     }
 
-    for (index, host) in hosts.iter().enumerate() {
+    for (index, host) in settings.hosts.iter().enumerate() {
         let menu_id = format!("ssh_{index}");
         menu_id_map.insert(menu_id.clone(), format!("ssh {host}"));
         let item = MenuItem::with_id(menu_id, host, true, None);
         menu.append(&item).expect("Failed to append menu item");
     }
 
-    if !hosts.is_empty() {
+    if !settings.hosts.is_empty() {
         menu.append(&PredefinedMenuItem::separator()).unwrap();
     }
 

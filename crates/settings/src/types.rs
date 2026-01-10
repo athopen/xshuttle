@@ -3,6 +3,7 @@ use serde::ser::SerializeMap;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+/// A single executable menu item with a display name and command.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Action {
     pub name: String,
@@ -65,7 +66,7 @@ impl<'de> Deserialize<'de> for Group {
     }
 }
 
-/// An entry in the menu - either a action or a group.
+/// An entry in the menu - either an action or a group.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum Entry {
@@ -73,45 +74,45 @@ pub enum Entry {
     Group(Group),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Config {
-    #[serde(default = "default_terminal")]
-    pub terminal: String,
-
-    #[serde(default = "default_editor")]
-    pub editor: String,
-
-    #[serde(rename = "actions", default)]
-    pub entries: Vec<Entry>,
-}
-
-fn default_terminal() -> String {
-    "default".to_string()
-}
-
-fn default_editor() -> String {
-    "default".to_string()
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            terminal: default_terminal(),
-            editor: default_editor(),
-            entries: Vec::new(),
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_default_config() {
-        let config = Config::default();
-        assert_eq!(config.terminal, "default");
-        assert_eq!(config.editor, "default");
-        assert!(config.entries.is_empty());
+    fn test_action_serialization() {
+        let action = Action {
+            name: "Test".to_string(),
+            cmd: "echo hello".to_string(),
+        };
+        let json = serde_json::to_string(&action).unwrap();
+        assert!(json.contains("Test"));
+        assert!(json.contains("echo hello"));
+    }
+
+    #[test]
+    fn test_group_serialization() {
+        let group = Group {
+            name: "Production".to_string(),
+            entries: vec![Entry::Action(Action {
+                name: "Server".to_string(),
+                cmd: "ssh prod".to_string(),
+            })],
+        };
+        let json = serde_json::to_string(&group).unwrap();
+        assert!(json.contains("Production"));
+    }
+
+    #[test]
+    fn test_entry_untagged_action() {
+        let json = r#"{"name": "Test", "cmd": "echo"}"#;
+        let entry: Entry = serde_json::from_str(json).unwrap();
+        assert!(matches!(entry, Entry::Action(_)));
+    }
+
+    #[test]
+    fn test_entry_untagged_group() {
+        let json = r#"{"MyGroup": [{"name": "Test", "cmd": "echo"}]}"#;
+        let entry: Entry = serde_json::from_str(json).unwrap();
+        assert!(matches!(entry, Entry::Group(_)));
     }
 }
