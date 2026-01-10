@@ -45,15 +45,19 @@ impl fmt::Display for NodeId {
 /// A node in the indexed tree.
 ///
 /// Use pattern matching to distinguish leaves from groups when
-/// building menus or iterating the tree structure.
+/// building menus or iterating the tree structure. For `Leaf` nodes,
+/// use [`Nodes::get()`] to retrieve the actual value by ID.
 #[derive(Debug, Clone)]
 pub enum Node<T> {
-    /// A leaf node with its value and assigned ID.
+    /// A leaf node referencing a value by ID.
+    ///
+    /// The actual value is stored in the [`Nodes`] container's `leaves` Vec.
+    /// Use [`Nodes::get()`] to retrieve it.
     Leaf {
-        /// Unique identifier for this leaf.
+        /// Unique identifier for this leaf, used to look up the value.
         id: NodeId,
-        /// The leaf value.
-        value: T,
+        /// Marker for the value type (not stored here).
+        _marker: std::marker::PhantomData<T>,
     },
     /// A named group containing nested nodes.
     Group {
@@ -92,10 +96,9 @@ impl<T> Node<T> {
 /// Built from config data during settings load. Provides both flat
 /// iteration (for lookup) and tree iteration (for menu building).
 ///
-/// # Type Parameter
-///
-/// `T: Clone` - The leaf value type. Clone is required because values
-/// are stored in both the tree structure and the flat lookup table.
+/// The tree structure stores only [`NodeId`] references in leaf nodes,
+/// while actual values are stored solely in the `leaves` Vec. This
+/// eliminates value duplication and reduces memory usage.
 #[derive(Debug, Clone)]
 pub struct Nodes<T> {
     /// Tree structure for menu building.
@@ -120,8 +123,11 @@ impl Nodes<Action> {
         match entry {
             Entry::Action(action) => {
                 let id = NodeId::from_index(leaves.len());
-                leaves.push(action.clone());
-                Node::Leaf { id, value: action }
+                leaves.push(action);
+                Node::Leaf {
+                    id,
+                    _marker: std::marker::PhantomData,
+                }
             }
             Entry::Group(Group { name, entries }) => {
                 let children = entries
@@ -144,10 +150,10 @@ impl Nodes<Host> {
             .enumerate()
             .map(|(i, hostname)| {
                 let host = Host { hostname };
-                leaves.push(host.clone());
+                leaves.push(host);
                 Node::Leaf {
                     id: NodeId::from_index(i),
-                    value: host,
+                    _marker: std::marker::PhantomData,
                 }
             })
             .collect();
@@ -347,9 +353,10 @@ mod tests {
 
         assert_eq!(tree.len(), 2);
 
-        // First is a leaf
+        // First is a leaf - use nodes.get() to access value
         assert!(tree[0].is_leaf());
-        if let Node::Leaf { value, .. } = &tree[0] {
+        if let Node::Leaf { id, .. } = &tree[0] {
+            let value = nodes.get(*id).expect("should find value");
             assert_eq!(value.name, "Root");
         }
 
@@ -396,7 +403,8 @@ mod tests {
                 if let Node::Group { children, .. } = level3 {
                     let deep = &children[0];
                     assert!(deep.is_leaf());
-                    if let Node::Leaf { value, .. } = deep {
+                    if let Node::Leaf { id, .. } = deep {
+                        let value = nodes.get(*id).expect("should find value");
                         assert_eq!(value.name, "Deep");
                     }
                 }

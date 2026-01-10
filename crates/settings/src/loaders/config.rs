@@ -1,9 +1,8 @@
-use crate::error::SettingsError;
+use crate::error::{SettingsError, ValidationError, ValidationResult};
 use crate::types::Entry;
 use jsonschema::Validator;
 use serde::Deserialize;
 use serde_json::Value;
-use std::fmt;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -22,30 +21,6 @@ pub(crate) struct ConfigContent {
 // ============================================================================
 // Schema Validation
 // ============================================================================
-
-/// A validation error with path and message.
-#[derive(Debug, Clone)]
-pub struct ValidationError {
-    pub path: String,
-    pub message: String,
-}
-
-impl fmt::Display for ValidationError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if self.path.is_empty() {
-            write!(f, "{}", self.message)
-        } else {
-            write!(f, "{}: {}", self.path, self.message)
-        }
-    }
-}
-
-/// Result of config validation.
-#[derive(Debug)]
-pub enum ValidationResult {
-    Valid,
-    Invalid(Vec<ValidationError>),
-}
 
 /// Returns the embedded JSON schema as a string.
 pub fn schema() -> &'static str {
